@@ -1,0 +1,13 @@
+{
+	"name": "HoneyBot",
+	"version": "1.0.0",
+	"description": "honeymoon.rip",
+	"main": "bot.js",
+	"author": "fSHARP",
+	"dependencies": {
+		"discord.io": "https://github.com/woor/discord.io/tarball/gateway_v6",
+		"discord.js": "^11.5.1",
+		"nightmare": "^3.0.2",
+		"winston": "^3.2.1"
+	}
+}
