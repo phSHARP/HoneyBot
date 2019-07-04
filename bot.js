@@ -145,10 +145,6 @@ function sendOnlineList(message, color = 7265400) {
 				logger.info(`    ${e}`);
 				message.channel.send(errorMessage);
 			}
-		}).catch(err => {
-			logger.info(`Can't reach ${urlMap} due to this error:`);
-			logger.info(`    ${err}`);
-			message.channel.send(errorMessage);
 		});
 }
 
