@@ -1,0 +1,1 @@
+ignorecase для cmd
