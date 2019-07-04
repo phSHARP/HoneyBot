@@ -1,6 +1,6 @@
 const Discord = require('discord.js');
 const logger = require('winston');
-const Nightmare = require('nightmare')
+const Nightmare = require('nightmare');
 
 const auth = require('./auth.json');
 const cfg = require('./config.json');
@@ -121,11 +121,11 @@ function sendOnlineList(message, color = 7265400) {
 		.then(response => {
 			try {
 				var players       = response.match(/<legend[^]*?>[^]*?\[([^]*?)\][^]*?<\/legend>/)[1];
-				var onlineList    = response.match(/<a href[^]*?>[^]*?<span[^]*?>[^]*?<\/span>[^]*?<\/a>/g);
+				var onlineList    = response.match(/<a href[^]*?>[^]*?<\/a>/g);
 				var onlineListStr = !onlineList || !onlineList.length ? '-'
 					: onlineList
 						.map(str => str
-							.replace(/<a href[^]*?>[^]*?<span[^]*?>([^]*?)<\/span>[^]*?<\/a>/, '$1')
+							.replace(/<a href[^]*?>([^]*?)<\/a>/, '$1')
 							.replace(/([\*\|_~`])/g, '\\$1'))
 						.join('\n').trim().substring(0, 2000);
 				message.channel.send({
