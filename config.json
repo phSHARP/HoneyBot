@@ -1,4 +1,7 @@
 {
 	"prefix": "?",
-	"urlMap": "http://109.173.122.192:8123"
+	"urlSite": "https://honeymoon.rip/",
+	"urlDynMapRequest": "http://109.173.122.192:8123/up/world/equestria/",
+	"useTimestamp": true,
+	"maxOnline": 20
 }

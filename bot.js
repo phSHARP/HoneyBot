@@ -1,12 +1,15 @@
 const Discord = require('discord.js');
 const logger = require('winston');
-const Nightmare = require('nightmare');
+const request = require('request');
 
 const auth = require('./auth.json');
 const cfg = require('./config.json');
 
 const prefix = cfg.prefix;
-const urlMap = cfg.urlMap;
+const urlSite = cfg.urlSite;
+const urlDynMapRequest = cfg.urlDynMapRequest;
+const useTimestamp = cfg.useTimestamp;
+const maxOnline = cfg.maxOnline;
 
 // Listen for 'SIGTERM' signal
 process.on('SIGTERM', () => {
@@ -29,9 +32,6 @@ var bot = new Discord.Client({
 	messageSweepInterval: 60
 });
 
-// Initialize DynMap page listener
-var dynmap = Nightmare().goto(urlMap).wait('div.dynmap');
-
 bot.on('ready', (event) => {
 	logger.info(`Connected at ${dateNow()}`);
 	logger.info(`    Logged in as: ${bot.user.username} (id: ${bot.user.id})`);
@@ -43,7 +43,7 @@ bot.on('error', (e) => {
 	console.log(`Oops, HoneyBot's error!\n    ${e}`);
 });
 
-// Triggers when the bot joins a guild
+// Triggers when the Bot joins a guild
 bot.on('guildCreate', (guild) => {
 	logger.info(`New guild joined: ${guild.name} (id: ${guild.id}) at ${dateNow()}`);
 	logger.info(`    This guild has ${guild.memberCount} members!`);
@@ -55,24 +55,31 @@ bot.on('guildDelete', (guild) => {
 });
 
 setInterval(() => {
+	if (!bot.user)
+		return;
 	var errorMessage = 'онлайн [0/0]';
-	dynmap
-		.evaluate(() => document.querySelector('div.panel').innerHTML)
-		.then(response => {
-			try {
-				var players       = response.match(/<legend[^]*?>[^]*?\[([^]*?)\][^]*?<\/legend>/)[1];
-				bot.user.setActivity(`онлайн [${players}]`, { type: 'WATCHING' }).catch((e) => {});
-			} catch (e) {
-				bot.user.setActivity(errorMessage, { type: 'WATCHING' }).catch((e) => {});
-			}
-		}).catch(err => {
+	var url = getDynMapURL();
+	request(url, (error, response, body) => {
+		if (error)
 			bot.user.setActivity(errorMessage, { type: 'WATCHING' }).catch((e) => {});
-		});
+		try {
+			var content     = JSON.parse(body);
+			var onlineCount = content.currentcount;
+			bot.user.setActivity(`онлайн [${onlineCount}/${maxOnline}]`, { type: 'WATCHING' }).catch((e) => {});
+		} catch (e) {
+			bot.user.setActivity(errorMessage, { type: 'WATCHING' }).catch((e) => {});
+		}
+	});
 }, 1000).unref();
 
 // Generates random int from min (included) to max (not included)
 function randomInt(min, max) {
 	return Math.floor(Math.random() * (max - min)) + min;
+}
+
+// Returns request url to DynMap
+function getDynMapURL() {
+	return useTimestamp ? urlDynMapRequest + randomInt(0, Number.MAX_SAFE_INTEGER) : urlDynMapRequest;
 }
 
 // Returns Date.now() in string format
@@ -116,40 +123,37 @@ function getHelp(color = 0) {
 // Sends online list of the Honeymoon server
 function sendOnlineList(message, color = 7265400) {
 	var errorMessage = 'Не могу получить доступ к динамической карте. <:OSsloth:338961408320339968>';
-	dynmap
-		.evaluate(() => document.querySelector('div.panel').innerHTML)
-		.then(response => {
-			try {
-				var players       = response.match(/<legend[^]*?>[^]*?\[([^]*?)\][^]*?<\/legend>/)[1];
-				var onlineList    = response.match(/<a href[^]*?>[^]*?<\/a>/g);
-				var onlineListStr = !onlineList || !onlineList.length ? '-'
-					: onlineList
-						.map(str => str
-							.replace(/<a href[^]*?>([^]*?)<\/a>/, '$1')
-							.replace(/([\*\|_~`])/g, '\\$1'))
-						.join('\n').trim().substring(0, 2000);
-				message.channel.send({
-					'embed': {
-						'color': color,
-						'author': {
-							'name': 'Honeymoon',
-							'url': 'https://honeymoon.rip',
-							'icon_url': 'https://cdn.discordapp.com/icons/375333729897414656/a024824d98cbeaff25b66eba15b7b6ad.png'
-						},
-						'title': `Онлайн [${players}]`,
-						'description': onlineListStr
-					}
-				});
-			} catch (e) {
-				logger.info(`Can't work with ${urlMap} due to this error:`);
-				logger.info(`    ${e}`);
-				message.channel.send(errorMessage);
-			}
-		}).catch(err => {
-			logger.info(`Can't reach ${urlMap} due to this error:`);
-			logger.info(`    ${err}`);
+	var url = getDynMapURL();
+	request(url, (error, response, body) => {
+		if (error) {
+			logger.info(`Can't reach ${url} due to this error:`);
+			logger.info(`    ${error}`);
 			message.channel.send(errorMessage);
-		});
+			return;
+		}
+		try {
+			var content       = JSON.parse(body);
+			var onlineCount   = content.currentcount;
+			var onlineListStr = content.players.map(player => player.name.replace(/([\*\|_~`])/g, '\\$1'))
+				.join('\n').trim().substring(0, 2000);
+			message.channel.send({
+				'embed': {
+					'color': color,
+					'author': {
+						'name': 'Honeymoon',
+						'url': urlSite,
+						'icon_url': 'https://cdn.discordapp.com/icons/375333729897414656/a024824d98cbeaff25b66eba15b7b6ad.png'
+					},
+					'title': `Онлайн [${onlineCount}/${maxOnline}]`,
+					'description': onlineListStr
+				}
+			});
+		} catch (e) {
+			logger.info(`Can't work with ${url} due to this error:`);
+			logger.info(`    ${e}`);
+			message.channel.send(errorMessage);
+		}
+	});
 }
 
 bot.on('message', (message) => {
