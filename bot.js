@@ -117,9 +117,9 @@ function getHelp(color = 0) {
 function sendOnlineList(message, color = 7265400) {
 	var errorMessage = 'Не могу получить доступ к динамической карте. <:OSsloth:338961408320339968>';
 	dynmap
-		.evaluate(() => document.querySelector('body').innerHTML)
+		.evaluate(() => document.querySelector('div.panel').innerHTML)
 		.then(response => {
-			/*try {
+			try {
 				var players       = response.match(/<legend[^]*?>[^]*?\[([^]*?)\][^]*?<\/legend>/)[1];
 				var onlineList    = response.match(/<a href[^]*?>[^]*?<span[^]*?>[^]*?<\/span>[^]*?<\/a>/g);
 				var onlineListStr = !onlineList || !onlineList.length ? '-'
@@ -144,7 +144,7 @@ function sendOnlineList(message, color = 7265400) {
 				logger.info(`Can't work with ${urlMap} due to this error:`);
 				logger.info(`    ${e}`);
 				message.channel.send(errorMessage);
-			}*/
+			}
 		}).catch(err => {
 			logger.info(`Can't reach ${urlMap} due to this error:`);
 			logger.info(`    ${err}`);
