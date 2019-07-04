@@ -61,12 +61,12 @@ setInterval(() => {
 		.then(response => {
 			try {
 				var players       = response.match(/<legend[^]*?>[^]*?\[([^]*?)\][^]*?<\/legend>/)[1];
-				bot.user.setActivity(`онлайн [${players}]`, { type: 'WATCHING' });
+				bot.user.setActivity(`онлайн [${players}]`, { type: 'WATCHING' }).catch((e) => {});
 			} catch (e) {
-				bot.user.setActivity(errorMessage, { type: 'WATCHING' });
+				bot.user.setActivity(errorMessage, { type: 'WATCHING' }).catch((e) => {});
 			}
 		}).catch(err => {
-			bot.user.setActivity(errorMessage, { type: 'WATCHING' });
+			bot.user.setActivity(errorMessage, { type: 'WATCHING' }).catch((e) => {});
 		});
 }, 1000).unref();
 
