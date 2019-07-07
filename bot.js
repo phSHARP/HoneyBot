@@ -176,7 +176,7 @@ bot.on('message', (message) => {
 		args[i] = args[i].substring(0, 100);
 	// Get command
 	var cmdM = content.match(/^([^ ]+)/);
-	var cmd = !cmdM || !cmdM.length ? '' : cmdM[1];
+	var cmd = !cmdM || !cmdM.length ? '' : cmdM[1].toLowerCase();
 	// Delete command from content
 	content = content.replace(/^[^ ]+/, '').trim();
 	
