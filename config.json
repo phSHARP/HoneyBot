@@ -1,5 +1,8 @@
 {
+	"creatorID": 193036945713135616,
 	"prefix": "?",
+	"userReactionsPath": "./userReactions/",
+	"userReactionsFName": "userReactions.txt",
 	"urlSite": "https://honeymoon.rip/",
 	"urlDynMapRequest": "http://109.173.122.192:8123/up/world/equestria/",
 	"useTimestamp": true,
