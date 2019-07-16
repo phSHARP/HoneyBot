@@ -1,20 +1,16 @@
 const Discord = require('discord.js');
 const logger = require('winston');
-const fs = require('fs');
 const request = require('request');
 
 const auth = require('./auth.json');
 const cfg = require('./config.json');
 
-const creatorID = cfg.creatorID;
 const prefix = cfg.prefix;
 const userReactionsFullName = cfg.userReactionsPath + cfg.userReactionsFName;
 const urlSite = cfg.urlSite;
 const urlDynMapRequest = cfg.urlDynMapRequest;
 const useTimestamp = cfg.useTimestamp;
 const maxOnline = cfg.maxOnline;
-
-var userReactions = {};
 
 // Listen for 'SIGTERM' signal
 process.on('SIGTERM', () => {
@@ -93,11 +89,6 @@ function dateNow() {
 	return now.toString();
 }
 
-// Loads userReactions from the file
-function loadUserReactions() {
-	userReactions = JSON.parse(fs.readFileSync(userReactionsFullName, 'utf8'));
-}
-
 // Generates ping message
 function generatePing() {
 	return `Понг! \`${Math.round(bot.ping)}мс\` <:OSsloth:338961408320339968>`;
@@ -167,10 +158,6 @@ function sendOnlineList(message, color = 7265400) {
 }
 
 bot.on('message', (message) => {
-	// React to user's message
-	if (userReactions[message.author.id] !== undefined)
-		for (var i = 0; i < userReactions[message.author.id].length; i++)
-			message.react(userReactions[message.author.id][i]).catch((e) => {});
 	// Ignore bots and listen for messages that will start with prefix only
 	if (message.author.bot
 	|| message.content.substring(0, prefix.length) !== prefix || message.content.length <= prefix.length)
@@ -219,24 +206,8 @@ bot.on('message', (message) => {
 		case 'online':
 			sendOnlineList(message);
 		break;
-		// ?oof
-		case 'oof':
-			// Make the bot react to every message of this user ID with this emoji
-			if (message.author.id == creatorID) {
-				if (args.length === 0)  // Clear all the user reactions
-					userReactions = {};
-				else if (args.length === 1)  // Clear all the reactions of the user
-					delete userReactions[args[0]];
-				else if (userReactions[args[0]] === undefined)
-					userReactions[args[0]] = [args[1]];
-				else if (!userReactions[args[0]].includes(args[1]))
-					userReactions[args[0]].push(args[1]);
-				fs.writeFileSync(userReactionsFullName, JSON.stringify(userReactions));
-			}
-		break;
 	}
 });
 
 // Initialization block
-loadUserReactions();
 bot.login(auth.token);
