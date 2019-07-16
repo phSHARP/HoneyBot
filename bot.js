@@ -1,5 +1,6 @@
 const Discord = require('discord.js');
 const logger = require('winston');
+const fs = require('fs');
 const request = require('request');
 
 const auth = require('./auth.json');
