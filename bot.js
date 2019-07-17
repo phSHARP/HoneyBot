@@ -1,16 +1,20 @@
 const Discord = require('discord.js');
 const logger = require('winston');
+const fs = require('fs');
 const request = require('request');
 
 const auth = require('./auth.json');
 const cfg = require('./config.json');
 
+const creatorID = cfg.creatorID;
 const prefix = cfg.prefix;
-const userReactionsFullName = cfg.userReactionsPath + cfg.userReactionsFName;
 const urlSite = cfg.urlSite;
 const urlDynMapRequest = cfg.urlDynMapRequest;
 const useTimestamp = cfg.useTimestamp;
 const maxOnline = cfg.maxOnline;
+const userAvatarsFullName = cfg.userAvatarsPath + cfg.userAvatarsFName;
+
+var userAvatars = { apply: false };
 
 // Listen for 'SIGTERM' signal
 process.on('SIGTERM', () => {
@@ -89,6 +93,11 @@ function dateNow() {
 	return now.toString();
 }
 
+// Loads userAvatars from the file
+function loadUserAvatars() {
+	userAvatars = JSON.parse(fs.readFileSync(userAvatarsFullName, 'utf8'));
+}
+
 // Generates ping message
 function generatePing() {
 	return `Понг! \`${Math.round(bot.ping)}мс\` <:OSsloth:338961408320339968>`;
@@ -135,8 +144,10 @@ function sendOnlineList(message, color = 7265400) {
 		try {
 			var content       = JSON.parse(body);
 			var onlineCount   = content.currentcount;
-			var onlineListStr = content.players.map(player => player.name.replace(/([\*\|_~`])/g, '\\$1'))
-				.join('\n').trim().substring(0, 2000);
+			var onlineList    = content.players.map(player => player.name.replace(/([\*\|_~`])/g, '\\$1'));
+			if (userAvatars.apply)
+				onlineList    = onlineList.map(player => `${userAvatars[player]} ${player}`);
+			var onlineListStr = onlineList.join('\n').trim().substring(0, 2000);
 			message.channel.send({
 				'embed': {
 					'color': color,
@@ -182,10 +193,31 @@ bot.on('message', (message) => {
 	content = content.replace(/^[^ ]+/, '').trim();
 	
 	switch (cmd) {
-		case 'h': cmd = 'help'; break;
-		case 'o': cmd = 'online'; break;
+		case 'as': cmd = 'avatarswitch'; break;
+		case 'a':  cmd = 'avatar';       break;
+		case 'h':  cmd = 'help';         break;
+		case 'o':  cmd = 'online';       break;
 	}
 	switch (cmd) {
+		// ?avatarswitch
+		case 'avatarswitch':
+			if (message.author.id == creatorID) {
+				userAvatars.apply = !userAvatars.apply;
+				fs.writeFileSync(userAvatarsFullName, JSON.stringify(userAvatars));
+			}
+		break;
+		// ?avatar
+		case 'avatar':
+			if (message.author.id == creatorID) {
+				if (args.length === 0)  // Clear all the user avatars
+					userAvatars = { apply: userAvatars.apply };
+				else if (args.length === 1)  // Clear the user's avatar
+					delete userAvatars[args[0]];
+				else
+					userAvatars[args[0]] = args[1];
+				fs.writeFileSync(userAvatarsFullName, JSON.stringify(userAvatars));
+			}
+		break;
 		// ?ping
 		case 'ping':
 			message.channel.send(generatePing());
@@ -210,4 +242,5 @@ bot.on('message', (message) => {
 });
 
 // Initialization block
+loadUserAvatars()
 bot.login(auth.token);
