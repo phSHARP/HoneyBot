@@ -144,11 +144,10 @@ function sendOnlineList(message, color = 7265400) {
 		try {
 			var content       = JSON.parse(body);
 			var onlineCount   = content.currentcount;
-			var onlineList    = content.players.map(player => player.name);
+			var onlineList    = content.players.map(player => player.name.replace(/([\*\|_~`])/g, '\\$1'));
 			if (userAvatars.apply)
 				onlineList    = onlineList.map(name => `${userAvatars[name] !== undefined ? userAvatars[name] + ' ' : ''}${name}`);
-			var onlineListStr = onlineList.map(name => name.replace(/([\*\|_~`])/g, '\\$1'))
-				.join('\n').trim().substring(0, 2000);
+			var onlineListStr = onlineList.join('\n').trim().substring(0, 2000);
 			message.channel.send({
 				'embed': {
 					'color': color,
