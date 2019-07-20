@@ -124,6 +124,11 @@ function getHelp(color = 0) {
 					'name': `${prefix}online | ${prefix}o`,
 					'value': 'Вывести список онлайна на сервере.',
 					'inline': true
+				},
+				{
+					'name': `${prefix}list | ${prefix}l`,
+					'value': 'Вывести список пользователей с персональным аватаром.',
+					'inline': true
 				}
 			]
 		}
@@ -250,7 +255,7 @@ bot.on('message', (message) => {
 		case 'a':   cmd = 'avatar';       break;
 		case 'h':   cmd = 'help';         break;
 		case 'o':   cmd = 'online';       break;
-		case 'ot':  cmd = 'onlinetest';   break;
+		case 'l':   cmd = 'list';         break;
 	}
 	switch (cmd) {
 		// ?re
@@ -307,9 +312,9 @@ bot.on('message', (message) => {
 		case 'online':
 			sendOnlineList(message.channel);
 		break;
-		case 'onlinetest':
-			if (message.author.id == creatorID)
-				sendOnlineList(message.channel, Object.keys(userAvatars));
+		// ?list
+		case 'list':
+			sendOnlineList(message.channel, Object.keys(userAvatars));
 		break;
 	}
 });
