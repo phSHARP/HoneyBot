@@ -188,7 +188,7 @@ function sendUserList(channel, messageType = 'online', userList = [], color = 72
 						saveOnlineRecord();
 					}
 					title = `Онлайн [${userCount}/${userCountMax}]`;
-					additionalDescription = ````Рекорд [${onlineRecord}/${userCountMax}]````;
+					additionalDescription = `\`\`\`Рекорд [${onlineRecord}/${userCountMax}]\`\`\``;
 				break;
 				case 'list':
 					title = `Зарегистрировано: ${userCount}`
