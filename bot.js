@@ -203,15 +203,17 @@ async function operateWithMessageList(message, contentList = [], page = 0, hasSt
 	const filter = (reaction, user) => (reaction.emoji.name === '◀' || (hasStop && reaction.emoji.name === '⏹') || reaction.emoji.name === '▶') && user.id != bot.user.id;
 	const collector = message.createReactionCollector(filter, { time: 60000 });
 	collector.on('collect', r => {
+		if (message.deleted)
+			return;
 		var isRefresh = !(r.emoji.name === '◀' && page === 0 || r.emoji.name === '▶' && page === contentList.length - 1);
 		if (r.emoji.name === '◀')
 			page = Math.max(0, page - 1);
 		if (r.emoji.name === '▶')
 			page = Math.min(page + 1, contentList.length - 1);
 		if (isRefresh) {
+			collector.stop();
 			message.clearReactions()
 				.then(() => {
-					collector.stop();
 					if (r.emoji.name !== '⏹') {
 						message.edit(contentList[page]);
 						operateWithMessageList(message, contentList, page, hasStop);
