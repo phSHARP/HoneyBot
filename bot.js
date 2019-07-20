@@ -12,8 +12,10 @@ const urlSite = cfg.urlSite;
 const urlDynMapRequest = cfg.urlDynMapRequest;
 const useTimestamp = cfg.useTimestamp;
 const maxOnline = cfg.maxOnline;
+const onlineRecordFName = cfg.onlineRecordFName;
 const userAvatarsFullName = cfg.userAvatarsPath + cfg.userAvatarsFName;
 
+var onlineRecord = 0;
 var userAvatars = { _apply: false };
 
 // Listen for 'SIGTERM' signal
@@ -70,6 +72,10 @@ setInterval(() => {
 		try {
 			var content     = JSON.parse(body);
 			var onlineCount = content.currentcount;
+			if (onlineCount > onlineRecord) {
+				onlineRecord = onlineCount;
+				saveOnlineRecord();
+			}
 			bot.user.setActivity(`онлайн [${onlineCount}/${maxOnline}]`, { type: 'WATCHING' }).catch((e) => {});
 		} catch (e) {
 			bot.user.setActivity(errorMessage, { type: 'WATCHING' }).catch((e) => {});
@@ -96,6 +102,21 @@ function dateNow() {
 // Loads userAvatars from the file
 function loadUserAvatars() {
 	userAvatars = JSON.parse(fs.readFileSync(userAvatarsFullName, 'utf8'));
+}
+
+// Saves userAvatars to the file
+function saveUserAvatars() {
+	fs.writeFileSync(userAvatarsFullName, JSON.stringify(userAvatars));
+}
+
+// Loads info about onlineRecord from the file
+function loadOnlineRecord() {
+	onlineRecord = parseInt(fs.readFileSync(onlineRecordFName, 'utf8'));
+}
+
+// Saves info about onlineRecord to the file
+function saveOnlineRecord() {
+	fs.writeFileSync(onlineRecordFName, onlineRecord);
 }
 
 // Generates ping message
@@ -135,8 +156,8 @@ function getHelp(color = 0) {
 	};
 }
 
-// Sends online list of the Honeymoon server
-function sendOnlineList(channel, onlineList = [], color = 7265400) {
+// Sends user list of the Honeymoon server
+function sendUserList(channel, messageType = 'online', userList = [], color = 7265400) {
 	var errorMessage = 'Не могу получить доступ к динамической карте. <:OSsloth:338961408320339968>';
 	var url = getDynMapURL();
 	request(url, (error, response, body) => {
@@ -148,19 +169,33 @@ function sendOnlineList(channel, onlineList = [], color = 7265400) {
 		}
 		try {
 			var content = JSON.parse(body);
-			if (onlineList.length === 0)
-				onlineList = content.players.map(player => player.name.replace(/([\*\|_~`])/g, '\\$1'));
-			onlineList = onlineList.filter(name => name !== '_apply').sort();
-			var onlineCount = onlineList.length;
-			var onlineCountMax = Math.max(onlineCount, maxOnline);
+			if (userList.length === 0)
+				userList = content.players.map(player => player.name.replace(/([\*\|_~`])/g, '\\$1'));
+			userList = userList.filter(name => name !== '_apply').sort();
+			var userCount = userList.length;
+			var userCountMax = Math.max(userCount, maxOnline);
 			if (userAvatars._apply)
-				onlineList = onlineList.map(name => userAvatars[name] !== undefined ? `${userAvatars[name]} ${name}` : name);
-			var onlineListPages = [];
-			for (var i = 0; i < onlineList.length / 10; i++)
-				onlineListPages.push(onlineList.slice(i * 10, Math.min((i + 1) * 10, onlineList.length)).join('\n').trim().substring(0, 2000));
-			if (onlineListPages.length === 0) onlineListPages = [''];
+				userList = userList.map(name => userAvatars[name] !== undefined ? `${userAvatars[name]} ${name}` : name);
+			var userListPages = [];
+			for (var i = 0; i < userList.length / 10; i++)
+				userListPages.push(userList.slice(i * 10, Math.min((i + 1) * 10, userList.length)).join('\n').trim().substring(0, 2000));
+			if (userListPages.length === 0) userListPages = [''];
+			var title = ''; var additionalDescription = '';
+			switch (messageType) {
+				case 'online':
+					if (userCount > onlineRecord) {
+						onlineRecord = userCount;
+						saveOnlineRecord();
+					}
+					title = `Онлайн [${userCount}/${userCountMax}]`;
+					additionalDescription = ````Рекорд [${onlineRecord}/${userCountMax}]````;
+				break;
+				case 'list':
+					title = `Зарегистрировано: ${userCount}`
+				break;
+			}
 			var contentList = [];
-			for (var i = 0; i < onlineListPages.length; i++)
+			for (var i = 0; i < userListPages.length; i++)
 				contentList.push({
 					'embed': {
 						'color': color,
@@ -169,10 +204,10 @@ function sendOnlineList(channel, onlineList = [], color = 7265400) {
 							'url': urlSite,
 							'icon_url': 'https://cdn.discordapp.com/icons/375333729897414656/a024824d98cbeaff25b66eba15b7b6ad.png'
 						},
-						'title': `Онлайн [${onlineCount}/${onlineCountMax}]`,
-						'description': onlineListPages[i],
+						'title': title,
+						'description': `${userListPages[i]}${additionalDescription}`,
 						'footer': {
-							'text': onlineListPages.length > 1 ? `Страница [${i + 1}/${onlineListPages.length}]` : ''
+							'text': userListPages.length > 1 ? `Страница [${i + 1}/${userListPages.length}]` : ''
 						}
 					}
 				});
@@ -278,7 +313,7 @@ bot.on('message', (message) => {
 		case 'avatarswitch':
 			if (message.author.id == creatorID) {
 				userAvatars._apply = !userAvatars._apply;
-				fs.writeFileSync(userAvatarsFullName, JSON.stringify(userAvatars));
+				saveUserAvatars();
 			}
 		break;
 		// ?avatar
@@ -291,7 +326,7 @@ bot.on('message', (message) => {
 					delete userAvatars[args[0]];
 				else                         // Otherwise setup it
 					userAvatars[args[0]] = args[1];
-				fs.writeFileSync(userAvatarsFullName, JSON.stringify(userAvatars));
+				saveUserAvatars();
 			}
 		break;
 		// ?ping
@@ -312,15 +347,16 @@ bot.on('message', (message) => {
 		break;
 		// ?online
 		case 'online':
-			sendOnlineList(message.channel);
+			sendUserList(message.channel);
 		break;
 		// ?list
 		case 'list':
-			sendOnlineList(message.channel, Object.keys(userAvatars));
+			sendUserList(message.channel, 'list', Object.keys(userAvatars));
 		break;
 	}
 });
 
 // Initialization block
-loadUserAvatars()
+loadOnlineRecord()
+loadUserAvatars();
 bot.login(auth.token);

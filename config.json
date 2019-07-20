@@ -5,6 +5,7 @@
 	"urlDynMapRequest": "http://109.173.122.192:8123/up/world/equestria/",
 	"useTimestamp": true,
 	"maxOnline": 20,
+	"onlineRecordFName": "onlineRecord.txt",
 	"userAvatarsPath": "./userAvatars/",
 	"userAvatarsFName": "userAvatars.txt"
 }
