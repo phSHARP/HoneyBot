@@ -131,14 +131,14 @@ function getHelp(color = 0) {
 }
 
 // Sends online list of the Honeymoon server
-function sendOnlineList(message, onlineList = [], color = 7265400) {
+function sendOnlineList(channel, onlineList = [], color = 7265400) {
 	var errorMessage = 'Не могу получить доступ к динамической карте. <:OSsloth:338961408320339968>';
 	var url = getDynMapURL();
 	request(url, (error, response, body) => {
 		if (error) {
 			logger.info(`Can't reach ${url} due to this error:`);
 			logger.info(`    ${error}`);
-			message.channel.send(errorMessage);
+			channel.send(errorMessage);
 			return;
 		}
 		try {
@@ -150,24 +150,61 @@ function sendOnlineList(message, onlineList = [], color = 7265400) {
 			var onlineCountMax = Math.max(onlineCount, maxOnline);
 			if (userAvatars._apply)
 				onlineList = onlineList.map(name => userAvatars[name] !== undefined ? `${userAvatars[name]} ${name}` : name);
-			var onlineListStr = onlineList.join('\n').trim().substring(0, 2000);
-			message.channel.send({
-				'embed': {
-					'color': color,
-					'author': {
-						'name': 'Honeymoon',
-						'url': urlSite,
-						'icon_url': 'https://cdn.discordapp.com/icons/375333729897414656/a024824d98cbeaff25b66eba15b7b6ad.png'
-					},
-					'title': `Онлайн [${onlineCount}/${onlineCountMax}]`,
-					'description': onlineListStr
-				}
-			});
+			var onlineListPages = [];
+			for (var i = 0; i < onlineList.length / 10; i++)
+				onlineListPages.push(onlineList.slice(i * 10, Math.min((i + 1) * 10, onlineList.length)).join('\n').trim().substring(0, 2000));
+			if (onlineListPages.length === 0) onlineListPages = [''];
+			var contentList = [];
+			for (var i = 0; i < onlineListPages.length; i++)
+				contentList.push({
+					'embed': {
+						'color': color,
+						'author': {
+							'name': 'Honeymoon',
+							'url': urlSite,
+							'icon_url': 'https://cdn.discordapp.com/icons/375333729897414656/a024824d98cbeaff25b66eba15b7b6ad.png'
+						},
+						'title': `Онлайн [${onlineCount}/${onlineCountMax}]`,
+						'description': onlineListPages[i],
+						'footer': {
+							'text': onlineListPages.length > 1 ? `Страница [${i + 1}/${onlineListPages.length}]` : ''
+						}
+					}
+				});
+			sendMessageList(channel, contentList);
 		} catch (e) {
 			logger.info(`Can't work with ${url} due to this error:`);
 			logger.info(`    ${e}`);
-			message.channel.send(errorMessage);
+			channel.send(errorMessage);
 		}
+	});
+}
+
+// Send the message list to the channel with < ⏹ > reactions (⏹ is optional)
+function sendMessageList(channel, contentList = [], page = 0, hasStop = false) {
+	if (contentList.length > 0)
+		channel.send(contentList[page])
+			.then(msg => {
+				if (contentList.length > 1)
+					operateWithMessageList(msg, contentList, page, hasStop);
+			});
+}
+
+// Operate with message list reactions
+async function operateWithMessageList(message, contentList = [], page = 0, hasStop = false) {
+	await message.react('◀');
+	if (hasStop) await message.react('⏹');
+	await message.react('▶');
+	const filter = (reaction, user) => (reaction.emoji.name === '◀' || (hasStop && reaction.emoji.name === '⏹') || reaction.emoji.name === '▶') && user.id != bot.user.id;
+	const collector = message.createReactionCollector(filter, { time: 15000 });
+	collector.on('collect', r => {
+		if (r.emoji.name === '◀')
+			page = Math.max(0, page - 1);
+		if (r.emoji.name === '▶')
+			page = Math.min(page + 1, contentList.length - 1);
+		message.delete();
+		if (r.emoji.name !== '⏹')
+			sendMessageList(message.channel, contentList, page, hasStop);
 	});
 }
 
@@ -256,11 +293,11 @@ bot.on('message', (message) => {
 		break;
 		// ?online
 		case 'online':
-			sendOnlineList(message);
+			sendOnlineList(message.channel);
 		break;
 		case 'onlinetest':
 			if (message.author.id == creatorID)
-				sendOnlineList(message, Object.keys(userAvatars));
+				sendOnlineList(message.channel, Object.keys(userAvatars));
 		break;
 	}
 });
