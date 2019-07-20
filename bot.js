@@ -188,7 +188,7 @@ function sendUserList(channel, messageType = 'online', userList = [], color = 72
 						saveOnlineRecord();
 					}
 					title = `Онлайн [${userCount}/${userCountMax}]`;
-					additionalDescription = `\n\`Рекорд [${onlineRecord}/${userCountMax}]\``;
+					additionalDescription = `\`Рекорд [${onlineRecord}/${userCountMax}]\``;
 				break;
 				case 'list':
 					title = `Зарегистрировано: ${userCount}`
@@ -205,7 +205,7 @@ function sendUserList(channel, messageType = 'online', userList = [], color = 72
 							'icon_url': 'https://cdn.discordapp.com/icons/375333729897414656/a024824d98cbeaff25b66eba15b7b6ad.png'
 						},
 						'title': title,
-						'description': `${userListPages[i]}${additionalDescription}`,
+						'description': `${additionalDescription}\n${userListPages[i]}`,
 						'footer': {
 							'text': userListPages.length > 1 ? `Страница [${i + 1}/${userListPages.length}]` : ''
 						}
