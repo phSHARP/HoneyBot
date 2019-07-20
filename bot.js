@@ -259,7 +259,7 @@ bot.on('message', (message) => {
 		break;
 		case 'onlinetest':
 			if (message.author.id == creatorID)
-				sendOnlineList(message, Object.get(userAvatars));
+				sendOnlineList(message, Object.keys(userAvatars));
 		break;
 	}
 });
