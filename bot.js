@@ -145,7 +145,7 @@ function sendOnlineList(message, onlineList = [], color = 7265400) {
 			var content = JSON.parse(body);
 			if (onlineList.length === 0)
 				onlineList = content.players.map(player => player.name.replace(/([\*\|_~`])/g, '\\$1'));
-			onlineList.filter(name => name !== '_apply');
+			onlineList = onlineList.filter(name => name !== '_apply');
 			var onlineCount = onlineList.length;
 			var onlineCountMax = Math.max(onlineCount, maxOnline);
 			if (userAvatars._apply)
