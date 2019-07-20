@@ -14,7 +14,7 @@ const useTimestamp = cfg.useTimestamp;
 const maxOnline = cfg.maxOnline;
 const userAvatarsFullName = cfg.userAvatarsPath + cfg.userAvatarsFName;
 
-var userAvatars = { apply: false };
+var userAvatars = { _apply: false };
 
 // Listen for 'SIGTERM' signal
 process.on('SIGTERM', () => {
@@ -145,9 +145,10 @@ function sendOnlineList(message, onlineList = [], color = 7265400) {
 			var content = JSON.parse(body);
 			if (onlineList.length === 0)
 				onlineList = content.players.map(player => player.name.replace(/([\*\|_~`])/g, '\\$1'));
+			onlineList.filter(name => name !== '_apply');
 			var onlineCount = onlineList.length;
 			var onlineCountMax = Math.max(onlineCount, maxOnline);
-			if (userAvatars.apply)
+			if (userAvatars._apply)
 				onlineList = onlineList.map(name => userAvatars[name] !== undefined ? `${userAvatars[name]} ${name}` : name);
 			var onlineListStr = onlineList.join('\n').trim().substring(0, 2000);
 			message.channel.send({
@@ -220,7 +221,7 @@ bot.on('message', (message) => {
 		// ?avatarswitch
 		case 'avatarswitch':
 			if (message.author.id == creatorID) {
-				userAvatars.apply = !userAvatars.apply;
+				userAvatars._apply = !userAvatars._apply;
 				fs.writeFileSync(userAvatarsFullName, JSON.stringify(userAvatars));
 			}
 		break;
@@ -229,7 +230,7 @@ bot.on('message', (message) => {
 			// Setup emoji-avatar for the user
 			if (message.author.id == creatorID) {
 				if (args.length === 0)       // Clear all the user avatars
-					userAvatars = { apply: userAvatars.apply };
+					userAvatars = { _apply: userAvatars._apply };
 				else if (args.length === 1)  // Clear the user's avatar
 					delete userAvatars[args[0]];
 				else                         // Otherwise setup it
