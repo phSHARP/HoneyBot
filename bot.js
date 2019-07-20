@@ -131,7 +131,7 @@ function getHelp(color = 0) {
 }
 
 // Sends online list of the Honeymoon server
-function sendOnlineList(message, color = 7265400) {
+function sendOnlineList(message, onlineList = [], color = 7265400) {
 	var errorMessage = 'Не могу получить доступ к динамической карте. <:OSsloth:338961408320339968>';
 	var url = getDynMapURL();
 	request(url, (error, response, body) => {
@@ -142,11 +142,13 @@ function sendOnlineList(message, color = 7265400) {
 			return;
 		}
 		try {
-			var content       = JSON.parse(body);
-			var onlineCount   = content.currentcount;
-			var onlineList    = content.players.map(player => player.name.replace(/([\*\|_~`])/g, '\\$1'));
+			var content = JSON.parse(body);
+			if (onlineList.length === 0)
+				onlineList = content.players.map(player => player.name.replace(/([\*\|_~`])/g, '\\$1'));
+			var onlineCount = onlineList.length;
+			var onlineCountMax = Math.max(onlineCount, maxOnline);
 			if (userAvatars.apply)
-				onlineList    = onlineList.map(name => userAvatars[name] !== undefined ? `${userAvatars[name]} ${name}` : name);
+				onlineList = onlineList.map(name => userAvatars[name] !== undefined ? `${userAvatars[name]} ${name}` : name);
 			var onlineListStr = onlineList.join('\n').trim().substring(0, 2000);
 			message.channel.send({
 				'embed': {
@@ -156,7 +158,7 @@ function sendOnlineList(message, color = 7265400) {
 						'url': urlSite,
 						'icon_url': 'https://cdn.discordapp.com/icons/375333729897414656/a024824d98cbeaff25b66eba15b7b6ad.png'
 					},
-					'title': `Онлайн [${onlineCount}/${maxOnline}]`,
+					'title': `Онлайн [${onlineCount}/${onlineCountMax}]`,
 					'description': onlineListStr
 				}
 			});
@@ -193,12 +195,28 @@ bot.on('message', (message) => {
 	content = content.replace(/^[^ ]+/, '').trim();
 	
 	switch (cmd) {
-		case 'as': cmd = 'avatarswitch'; break;
-		case 'a':  cmd = 'avatar';       break;
-		case 'h':  cmd = 'help';         break;
-		case 'o':  cmd = 'online';       break;
+		case 'rea': cmd = 'reavatars';    break;
+		case 'as':  cmd = 'avatarswitch'; break;
+		case 'a':   cmd = 'avatar';       break;
+		case 'h':   cmd = 'help';         break;
+		case 'o':   cmd = 'online';       break;
+		case 'ot':  cmd = 'onlinetest';   break;
 	}
 	switch (cmd) {
+		// ?re
+		case 're':
+			// Shutdown bot in order to restart it via ./startup.sh script
+			if (message.author.id == creatorID)
+				process.kill(process.pid, 'SIGTERM');
+		break;
+		// ?reavatars
+		case 'reavatars':
+			// Reload avatars map (dictionary)
+			if (message.author.id == creatorID) {
+				loadUserAvatars();
+				logger.info(`Reloaded avatars map at ${dateNow()}`);
+			}
+		break;
 		// ?avatarswitch
 		case 'avatarswitch':
 			if (message.author.id == creatorID) {
@@ -208,12 +226,13 @@ bot.on('message', (message) => {
 		break;
 		// ?avatar
 		case 'avatar':
+			// Setup emoji-avatar for the user
 			if (message.author.id == creatorID) {
-				if (args.length === 0)  // Clear all the user avatars
+				if (args.length === 0)       // Clear all the user avatars
 					userAvatars = { apply: userAvatars.apply };
 				else if (args.length === 1)  // Clear the user's avatar
 					delete userAvatars[args[0]];
-				else
+				else                         // Otherwise setup it
 					userAvatars[args[0]] = args[1];
 				fs.writeFileSync(userAvatarsFullName, JSON.stringify(userAvatars));
 			}
@@ -237,6 +256,10 @@ bot.on('message', (message) => {
 		// ?online
 		case 'online':
 			sendOnlineList(message);
+		break;
+		case 'onlinetest':
+			if (message.author.id == creatorID)
+				sendOnlineList(message, Object.get(userAvatars));
 		break;
 	}
 });
