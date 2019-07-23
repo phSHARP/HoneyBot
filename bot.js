@@ -65,8 +65,11 @@ setInterval(() => {
 	if (!bot.user)
 		return;
 	var errorMessage = 'онлайн [0/0]';
-	var url = getDynMapURL();
-	request(url, (error, response, body) => {
+	var options = {
+		url: getDynMapURL(),
+		timeout: 3000
+	}
+	request(options, (error, response, body) => {
 		if (error)
 			bot.user.setActivity(errorMessage, { type: 'WATCHING' }).catch((e) => {});
 		try {
@@ -159,10 +162,13 @@ function getHelp(color = 0) {
 // Sends user list of the Honeymoon server
 function sendUserList(channel, messageType = 'online', userList = [], color = 7265400) {
 	var errorMessage = 'Не могу получить доступ к динамической карте. <:OSsloth:338961408320339968>';
-	var url = getDynMapURL();
-	request(url, (error, response, body) => {
+	var options = {
+		url: getDynMapURL(),
+		timeout: 3000
+	}
+	request(options, (error, response, body) => {
 		if (error) {
-			logger.info(`Can't reach ${url} due to this error:`);
+			logger.info(`Can't reach ${options.url} due to this error:`);
 			logger.info(`    ${error}`);
 			channel.send(errorMessage);
 			return;
@@ -213,7 +219,7 @@ function sendUserList(channel, messageType = 'online', userList = [], color = 72
 				});
 			sendMessageList(channel, contentList);
 		} catch (e) {
-			logger.info(`Can't work with ${url} due to this error:`);
+			logger.info(`Can't work with ${options.url} due to this error:`);
 			logger.info(`    ${e}`);
 			channel.send(errorMessage);
 		}
