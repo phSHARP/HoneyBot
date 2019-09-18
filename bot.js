@@ -242,7 +242,7 @@ async function operateWithMessageList(message, contentList = [], page = 0, hasSt
 	if (hasStop) await message.react('⏹');
 	await message.react('▶');
 	const filter = (reaction, user) => (reaction.emoji.name === '◀' || (hasStop && reaction.emoji.name === '⏹') || reaction.emoji.name === '▶') && user.id != bot.user.id;
-	const collector = message.createReactionCollector(filter, { time: 60000 });
+	const collector = message.createReactionCollector(filter, { time: 600000 });
 	collector.on('collect', r => {
 		if (message.deleted)
 			return;
