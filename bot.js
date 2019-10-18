@@ -183,8 +183,9 @@ function sendUserList(channel, messageType = 'online', userList = [], color = 72
 			if (userAvatars._apply)
 				userList = userList.map(name => userAvatars[name] !== undefined ? `${userAvatars[name]} ${name}` : name);
 			var userListPages = [];
-			for (var i = 0; i < userList.length / 10; i++)
-				userListPages.push(userList.slice(i * 10, Math.min((i + 1) * 10, userList.length)).join('\n').trim().substring(0, 2000));
+			var usersPerPage = 15;
+			for (var i = 0; i < userList.length / usersPerPage; i++)
+				userListPages.push(userList.slice(i * usersPerPage, Math.min((i + 1) * usersPerPage, userList.length)).join('\n').trim().substring(0, 2000));
 			if (userListPages.length === 0) userListPages = [''];
 			var title = ''; var additionalDescription = '';
 			switch (messageType) {
