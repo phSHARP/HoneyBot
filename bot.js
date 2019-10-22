@@ -34,8 +34,8 @@ logger.level = 'debug';
 
 // Initialize Discord Bot
 var bot = new Discord.Client({
-	messageCacheMaxSize: 5,
-	messageCacheLifetime: 120,
+	messageCacheMaxSize: 100,
+	messageCacheLifetime: 60 * 60 + 1,
 	messageSweepInterval: 60
 });
 
@@ -243,7 +243,7 @@ async function operateWithMessageList(message, contentList = [], page = 0, hasSt
 	if (hasStop) await message.react('⏹');
 	await message.react('▶');
 	const filter = (reaction, user) => (reaction.emoji.name === '◀' || (hasStop && reaction.emoji.name === '⏹') || reaction.emoji.name === '▶') && user.id != bot.user.id;
-	const collector = message.createReactionCollector(filter, { time: 3600000 });
+	const collector = message.createReactionCollector(filter, { time: 60 * 60 * 1000 });
 	collector.on('collect', r => {
 		if (message.deleted)
 			return;

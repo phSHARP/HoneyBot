@@ -6,6 +6,6 @@
 	"useTimestamp": true,
 	"maxOnline": 20,
 	"onlineRecordFName": "onlineRecord.txt",
-	"userAvatarsPath": "./userAvatars/",
-	"userAvatarsFName": "userAvatars.txt"
+	"userAvatarsPath": "./user_avatars/",
+	"userAvatarsFName": "user_avatars.txt"
 }
