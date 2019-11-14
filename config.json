@@ -7,5 +7,7 @@
 	"maxOnline": 100,
 	"onlineRecordFName": "onlineRecord.txt",
 	"userAvatarsPath": "./user_avatars/",
-	"userAvatarsFName": "user_avatars.txt"
+	"userAvatarsFName": "user_avatars.txt",
+	"userInfoPath": "./user_info/",
+	"userInfoFName": "user_info.txt"
 }

@@ -14,9 +14,13 @@ const useTimestamp = cfg.useTimestamp;
 const maxOnline = cfg.maxOnline;
 const onlineRecordFName = cfg.onlineRecordFName;
 const userAvatarsFullName = cfg.userAvatarsPath + cfg.userAvatarsFName;
+const userInfoFullName = cfg.userInfoPath + cfg.userInfoFName;
 
+var botLoaded = false;
+var botMaintenance = true;
 var onlineRecord = 0;
 var userAvatars = { _apply: false };
+var userInfo = { _global_lock: false, _default: 'загрузка...' };
 
 // Listen for 'SIGTERM' signal
 process.on('SIGTERM', () => {
@@ -43,6 +47,7 @@ bot.on('ready', (event) => {
 	logger.info(`Connected at ${dateNow()}`);
 	logger.info(`    Logged in as: ${bot.user.username} (id: ${bot.user.id})`);
 	bot.user.setActivity('загрузку...');
+	botLoaded = true;
 });
 
 // Listen for Bot's errors
@@ -112,6 +117,16 @@ function saveUserAvatars() {
 	fs.writeFileSync(userAvatarsFullName, JSON.stringify(userAvatars));
 }
 
+// Loads userInfo from the file
+function loadUserInfo() {
+	userInfo = JSON.parse(fs.readFileSync(userInfoFullName, 'utf8'));
+}
+
+// Saves userInfo to the file
+function saveUserInfo() {
+	fs.writeFileSync(userInfoFullName, JSON.stringify(userInfo));
+}
+
 // Loads info about onlineRecord from the file
 function loadOnlineRecord() {
 	onlineRecord = parseInt(fs.readFileSync(onlineRecordFName, 'utf8'));
@@ -155,6 +170,30 @@ function getHelp(color = 0) {
 					'inline': true
 				}
 			]
+		}
+	};
+}
+
+// Returns info about user
+function getUserInfo(username, color = 7265400) {
+	return {
+		'embed': {
+			'color': color,
+			'author': {
+				'name': 'Honeymoon',
+				'url': urlSite,
+				'icon_url': 'https://cdn.discordapp.com/icons/375333729897414656/a024824d98cbeaff25b66eba15b7b6ad.png'
+			},
+			'title': `Информация о ${username}`,
+			'thumbnail': {
+				'url': userAvatars[username] !== undefined
+					? `https://cdn.discordapp.com/emojis/${userAvatars[username].match(/<a?:[^ ]*:(\d*)>/)[1]}.${userAvatars[username].startsWith('<a') ? 'gif' : 'png'}`
+					: `https://cdn.discordapp.com/embed/avatars/${randomInt(0, 5)}.png`
+			},
+			'description': `${userInfo[username] !== undefined ? userInfo[username].description : userInfo._default}`,
+			'image': {
+				'url': `${userInfo[username] !== undefined ? userInfo[username].art : ''}`
+			}
 		}
 	};
 }
@@ -270,15 +309,24 @@ async function operateWithMessageList(message, contentList = [], page = 0, hasSt
 }
 
 bot.on('message', (message) => {
+	// Ignore message if bot hasn't loaded yet
+	if (!botLoaded)
+		return;
 	// Ignore bots and listen for messages that will start with prefix only
 	if (message.author.bot
 	|| message.content.substring(0, prefix.length) !== prefix || message.content.length <= prefix.length)
 		return;
+	// Ignore everyone if the bot has started in maintenance mode
+	if (botMaintenance && message.author.id != creatorID) {
+		message.channel.send('Ведутся тех. работы. 🍺');
+		return;
+	}
 	
 	// Get shielded content
 	var content = message.content.substr(prefix.length)
 		.replace(/\r\n|\s/g, ' ')
-		.replace(/([\*\|_~`])/g, '\\$1');
+		.replace(/([\*\|_~`])/g, '\\$1')
+		.replace(/(<a?:[^ ]*)\\([^ ]*:\d*>)/g, '$1$2');
 	// Get arguments
 	var args = content.trim() == '' ? ['']
 		: content.match(/"[^"]*"|[^ "]+/g)
@@ -294,12 +342,15 @@ bot.on('message', (message) => {
 	content = content.replace(/^[^ ]+/, '').trim();
 	
 	switch (cmd) {
-		case 'rea': cmd = 'reavatars';    break;
-		case 'as':  cmd = 'avatarswitch'; break;
-		case 'a':   cmd = 'avatar';       break;
-		case 'h':   cmd = 'help';         break;
-		case 'o':   cmd = 'online';       break;
-		case 'l':   cmd = 'list';         break;
+		case 'reu': cmd = 'reusers';        break;
+		case 'as':  cmd = 'avatarswitch';   break;
+		case 'ils': cmd = 'infolockswitch'; break;
+		case 'di':  cmd = 'deleteinfo';     break;
+		case 'a':   cmd = 'avatar';         break;
+		case 'h':   cmd = 'help';           break;
+		case 'o':   cmd = 'online';         break;
+		case 'l':   cmd = 'list';           break;
+		case 'i':   cmd = 'info';           break;
 	}
 	switch (cmd) {
 		// ?re
@@ -308,12 +359,13 @@ bot.on('message', (message) => {
 			if (message.author.id == creatorID)
 				process.kill(process.pid, 'SIGTERM');
 		break;
-		// ?reavatars
-		case 'reavatars':
-			// Reload avatars map (dictionary)
+		// ?reusers
+		case 'reusers':
+			// Reload userInfo and userAvatars maps
 			if (message.author.id == creatorID) {
 				loadUserAvatars();
-				logger.info(`Reloaded avatars map at ${dateNow()}`);
+				loadUserInfo();
+				logger.info(`Reloaded userInfo and userAvatars maps at ${dateNow()}`);
 			}
 		break;
 		// ?avatarswitch
@@ -360,10 +412,73 @@ bot.on('message', (message) => {
 		case 'list':
 			sendUserList(message.channel, 'list', Object.keys(userAvatars));
 		break;
+		// ?info
+		case 'info':
+			if (args.length > 0)
+				message.channel.send(getUserInfo(args[0]));
+		break;
+		// ?setinfo
+		case 'setinfo':
+			if (args.length > 1) {
+				if (userInfo._global_lock || userInfo[args[0]] !== undefined && userInfo[args[0]].locked && message.author.id != creatorID) {
+					message.channel.send('Изменение информации об этом персонаже недоступно.');
+					return;
+				}
+				let contentInfo = content.replace(/^[^ ]+/, '').trim();
+				if (userInfo[args[0]] === undefined)
+					userInfo[args[0]] = {
+						description: contentInfo,
+						art: '',
+						locked: false
+					};
+				else
+					userInfo[args[0]].description = contentInfo;
+				saveUserInfo();
+			}
+		break;
+		// ?setart
+		case 'setart':
+			if (args.length > 1) {
+				if (userInfo._global_lock || userInfo[args[0]] !== undefined && userInfo[args[0]].locked && message.author.id != creatorID) {
+					message.channel.send('Изменение информации об этом персонаже недоступно.');
+					return;
+				}
+				if (userInfo[args[0]] === undefined)
+					userInfo[args[0]] = {
+						description: '',
+						art: args[1],
+						locked: false
+					};
+				else
+					userInfo[args[0]].art = args[1];
+				saveUserInfo();
+			}
+		break;
+		// ?infolockswitch
+		case 'infolockswitch':
+			if (message.author.id == creatorID) {
+				if (args.length === 0)
+					userInfo._global_lock = !userInfo._global_lock;
+				else if (userInfo[args[0]] !== undefined)
+					userInfo[args[0]].locked = !userInfo[args[0]].locked;
+				saveUserInfo();
+			}
+		break;
+		// ?deleteinfo
+		case 'deleteinfo':
+			if (message.author.id == creatorID) {
+				if (args.length === 0)
+					userInfo = { _global_lock: false, _default: userInfo._default }
+				else
+					delete userInfo[args[0]];
+				saveUserInfo();
+			}
+		break;
 	}
 });
 
 // Initialization block
 loadOnlineRecord()
 loadUserAvatars();
+loadUserInfo();
 bot.login(auth.token);
