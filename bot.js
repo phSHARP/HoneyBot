@@ -17,7 +17,7 @@ const userAvatarsFullName = cfg.userAvatarsPath + cfg.userAvatarsFName;
 const userInfoFullName = cfg.userInfoPath + cfg.userInfoFName;
 
 var botLoaded = false;
-var botMaintenance = true;
+var botMaintenance = false;
 var onlineRecord = 0;
 var userAvatars = { _apply: false };
 var userInfo = { _global_lock: false, _default: 'загрузка...' };
@@ -168,6 +168,21 @@ function getHelp(color = 0) {
 					'name': `${prefix}list | ${prefix}l`,
 					'value': 'Вывести список пользователей с персональным аватаром.',
 					'inline': true
+				},
+				{
+					'name': `${prefix}info <name> | ${prefix}i <name>`,
+					'value': 'Отобразить информацию о персонаже с именем <name>.',
+					'inline': true
+				},
+				{
+					'name': `${prefix}setinfo <name> <description...>`,
+					'value': 'Добавить/изменить описание конкретного персонажа (выводимое по команде ?info).',
+					'inline': true
+				},
+				{
+					'name': `${prefix}setart <name> <link>`,
+					'value': 'Добавить/изменить ссылку на арт данного персонажа (отображаемое по команде ?info).',
+					'inline': true
 				}
 			]
 		}
@@ -184,7 +199,7 @@ function getUserInfo(username, color = 7265400) {
 				'url': urlSite,
 				'icon_url': 'https://cdn.discordapp.com/icons/375333729897414656/a024824d98cbeaff25b66eba15b7b6ad.png'
 			},
-			'title': `Информация о ${username}`,
+			'title': `${username}: информация`,
 			'thumbnail': {
 				'url': userAvatars[username] !== undefined
 					? `https://cdn.discordapp.com/emojis/${userAvatars[username].match(/<a?:[^ ]*:(\d*)>/)[1]}.${userAvatars[username].startsWith('<a') ? 'gif' : 'png'}`
@@ -420,7 +435,7 @@ bot.on('message', (message) => {
 		// ?setinfo
 		case 'setinfo':
 			if (args.length > 1) {
-				if (userInfo._global_lock || userInfo[args[0]] !== undefined && userInfo[args[0]].locked && message.author.id != creatorID) {
+				if ((userInfo._global_lock || userInfo[args[0]] !== undefined && userInfo[args[0]].locked) && message.author.id != creatorID) {
 					message.channel.send('Изменение информации об этом персонаже недоступно.');
 					return;
 				}
@@ -439,13 +454,13 @@ bot.on('message', (message) => {
 		// ?setart
 		case 'setart':
 			if (args.length > 1) {
-				if (userInfo._global_lock || userInfo[args[0]] !== undefined && userInfo[args[0]].locked && message.author.id != creatorID) {
+				if ((userInfo._global_lock || userInfo[args[0]] !== undefined && userInfo[args[0]].locked) && message.author.id != creatorID) {
 					message.channel.send('Изменение информации об этом персонаже недоступно.');
 					return;
 				}
 				if (userInfo[args[0]] === undefined)
 					userInfo[args[0]] = {
-						description: '',
+						description: userInfo._default,
 						art: args[1],
 						locked: false
 					};
