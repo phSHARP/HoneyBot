@@ -439,7 +439,7 @@ bot.on('message', (message) => {
 					message.channel.send('Изменение информации об этом персонаже недоступно.');
 					return;
 				}
-				let contentInfo = content.replace(/^[^ ]+/, '').trim();
+				let contentInfo = content.replace(args[0], '').trim();
 				if (userInfo[args[0]] === undefined)
 					userInfo[args[0]] = {
 						description: contentInfo,
