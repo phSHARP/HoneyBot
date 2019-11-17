@@ -66,6 +66,7 @@ bot.on('guildDelete', (guild) => {
 	logger.info(`I've been removed from: ${guild.name} (id: ${guild.id}) at ${dateNow()}`);
 });
 
+// Online check for bot status
 setInterval(() => {
 	if (!bot.user)
 		return;
@@ -224,7 +225,7 @@ function sendUserList(channel, messageType = 'online', userList = [], color = 72
 		if (error) {
 			logger.info(`Can't reach ${options.url} due to this error:`);
 			logger.info(`    ${error}`);
-			channel.send(errorMessage);
+			channel.send(errorMessage).then(msg => { msg.react('379642791245905921'); });
 			return;
 		}
 		try {
@@ -436,7 +437,7 @@ bot.on('message', (message) => {
 		case 'setinfo':
 			if (args.length > 1) {
 				if ((userInfo._global_lock || userInfo[args[0]] !== undefined && userInfo[args[0]].locked) && message.author.id != creatorID) {
-					message.channel.send('Изменение информации об этом персонаже недоступно.');
+					message.channel.send('Изменение информации об этом персонаже недоступно. <:SlothGun:609715424317276160>');
 					return;
 				}
 				let contentInfo = content.replace(/"[^"]*"|[^ "]+/, '').trim();
@@ -455,7 +456,7 @@ bot.on('message', (message) => {
 		case 'setart':
 			if (args.length > 1) {
 				if ((userInfo._global_lock || userInfo[args[0]] !== undefined && userInfo[args[0]].locked) && message.author.id != creatorID) {
-					message.channel.send('Изменение информации об этом персонаже недоступно.');
+					message.channel.send('Изменение информации об этом персонаже недоступно. <:SlothGun:609715424317276160>');
 					return;
 				}
 				if (userInfo[args[0]] === undefined)
