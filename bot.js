@@ -215,71 +215,77 @@ function getUserInfo(username, color = 7265400) {
 }
 
 // Sends user list of the Honeymoon server
-function sendUserList(channel, messageType = 'online', userList = [], color = 7265400) {
-	var errorMessage = 'Не могу получить доступ к динамической карте. <:OSsloth:338961408320339968>';
-	var options = {
-		url: getDynMapURL(),
-		timeout: 3000
-	}
-	request(options, (error, response, body) => {
-		if (error) {
-			logger.info(`Can't reach ${options.url} due to this error:`);
-			logger.info(`    ${error}`);
-			channel.send(errorMessage).then(msg => { msg.react('379642791245905921'); });
-			return;
-		}
-		try {
-			var content = JSON.parse(body);
-			if (userList.length === 0)
-				userList = content.players.map(player => player.name.replace(/([\*\|_~`])/g, '\\$1'));
-			userList = userList.filter(name => name !== '_apply').sort();
-			var userCount = userList.length;
-			var userCountMax = Math.max(userCount, maxOnline);
-			if (userAvatars._apply)
-				userList = userList.map(name => userAvatars[name] !== undefined ? `${userAvatars[name]} ${name}` : name);
-			var userListPages = [];
-			var usersPerPage = 15;
-			for (var i = 0; i < userList.length / usersPerPage; i++)
-				userListPages.push(userList.slice(i * usersPerPage, Math.min((i + 1) * usersPerPage, userList.length)).join('\n').trim().substring(0, 2000));
-			if (userListPages.length === 0) userListPages = [''];
-			var title = ''; var additionalDescription = '';
-			switch (messageType) {
-				case 'online':
+function sendUserList(channel, title = '', additionalDescription = '', userList = [], usersPerPage = 15, color = 7265400) {
+	userList = userList.filter(name => name !== '_apply').sort();
+	if (userAvatars._apply)
+		userList = userList.map(name => userAvatars[name] !== undefined ? `${userAvatars[name]} ${name}` : name);
+	var userListPages = [];
+	for (var i = 0; i < userList.length / usersPerPage; i++)
+		userListPages.push(userList.slice(i * usersPerPage, Math.min((i + 1) * usersPerPage, userList.length)).join('\n').trim().substring(0, 1900));
+	if (userListPages.length === 0) userListPages = [''];
+	var contentList = [];
+	for (var i = 0; i < userListPages.length; i++)
+		contentList.push({
+			'embed': {
+				'color': color,
+				'author': {
+					'name': 'Honeymoon',
+					'url': urlSite,
+					'icon_url': 'https://cdn.discordapp.com/icons/375333729897414656/a024824d98cbeaff25b66eba15b7b6ad.png'
+				},
+				'title': title,
+				'description': (`${additionalDescription}\n${userListPages[i]}`).trim().substring(0, 1900),
+				'footer': {
+					'text': userListPages.length > 1 ? `Страница [${i + 1}/${userListPages.length}]` : ''
+				}
+			}
+		});
+	sendMessageList(channel, contentList);
+}
+
+// Sends user list of the Honeymoon server according to message (list) type
+// messageType in ['online', 'list']
+function sendUserListByType(channel, messageType = 'online', userList = [], usersPerPage = 15, color = 7265400) {
+	var title = ''; var additionalDescription = '';
+	var userCount = userList.filter(name => name !== '_apply').length;
+	switch (messageType) {
+		case 'online':
+			var errorMessage = 'Не могу получить доступ к динамической карте. <:OSsloth:338961408320339968>';
+			var options = {
+				url: getDynMapURL(),
+				timeout: 3000
+			}
+			request(options, (error, response, body) => {
+				if (error) {
+					logger.info(`Can't reach ${options.url} due to this error:`);
+					logger.info(`    ${error}`);
+					channel.send(errorMessage);
+					return;
+				}
+				try {
+					var content = JSON.parse(body);
+					userList = content.players.map(player => player.name.replace(/([\*\|_~`])/g, '\\$1'));
+					userCount = userList.length;
 					if (userCount > onlineRecord) {
 						onlineRecord = userCount;
 						saveOnlineRecord();
 					}
+					var userCountMax = Math.max(userCount, maxOnline);
 					title = `Онлайн [${userCount}/${userCountMax}]`;
 					additionalDescription = `\`Рекорд [${onlineRecord}/${userCountMax}]\``;
-				break;
-				case 'list':
-					title = `Зарегистрировано: ${userCount}`
-				break;
-			}
-			var contentList = [];
-			for (var i = 0; i < userListPages.length; i++)
-				contentList.push({
-					'embed': {
-						'color': color,
-						'author': {
-							'name': 'Honeymoon',
-							'url': urlSite,
-							'icon_url': 'https://cdn.discordapp.com/icons/375333729897414656/a024824d98cbeaff25b66eba15b7b6ad.png'
-						},
-						'title': title,
-						'description': `${additionalDescription}\n${userListPages[i]}`,
-						'footer': {
-							'text': userListPages.length > 1 ? `Страница [${i + 1}/${userListPages.length}]` : ''
-						}
-					}
-				});
-			sendMessageList(channel, contentList);
-		} catch (e) {
-			logger.info(`Can't work with ${options.url} due to this error:`);
-			logger.info(`    ${e}`);
-			channel.send(errorMessage);
-		}
-	});
+					sendUserList(channel, title, additionalDescription, userList, usersPerPage, color);
+				} catch (e) {
+					logger.info(`Can't work with ${options.url} due to this error:`);
+					logger.info(`    ${e}`);
+					channel.send(errorMessage);
+				}
+			});
+		break;
+		case 'list':
+			title = `Зарегистрировано: ${userCount}`;
+			sendUserList(channel, title, additionalDescription, userList, usersPerPage, color);
+		break;
+	}
 }
 
 // Send the message list to the channel with < ⏹ > reactions (⏹ is optional)
@@ -422,11 +428,11 @@ bot.on('message', (message) => {
 		break;
 		// ?online
 		case 'online':
-			sendUserList(message.channel);
+			sendUserListByType(message.channel, 'online');
 		break;
 		// ?list
 		case 'list':
-			sendUserList(message.channel, 'list', Object.keys(userAvatars));
+			sendUserListByType(message.channel, 'list', Object.keys(userAvatars));
 		break;
 		// ?info
 		case 'info':
