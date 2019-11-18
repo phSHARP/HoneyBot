@@ -200,11 +200,11 @@ function getUserInfo(username, color = 7265400) {
 				'url': urlSite,
 				'icon_url': 'https://cdn.discordapp.com/icons/375333729897414656/a024824d98cbeaff25b66eba15b7b6ad.png'
 			},
-			'title': `${username}: информация`,
+			'title': `📝 Информация: ${username}`,
 			'thumbnail': {
 				'url': userAvatars[username] !== undefined
 					? `https://cdn.discordapp.com/emojis/${userAvatars[username].match(/<a?:[^ ]*:(\d*)>/)[1]}.${userAvatars[username].startsWith('<a') ? 'gif' : 'png'}`
-					: `https://cdn.discordapp.com/embed/avatars/${randomInt(0, 5)}.png`
+					: `https://i.imgur.com/YEB3QPU.png` //`https://cdn.discordapp.com/embed/avatars/${randomInt(0, 5)}.png`
 			},
 			'description': `${userInfo[username] !== undefined ? userInfo[username].description : userInfo._default}`,
 			'image': {
