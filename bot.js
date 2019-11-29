@@ -234,7 +234,7 @@ function sendUserList(channel, title = '', additionalDescription = '', userList 
 					'icon_url': 'https://cdn.discordapp.com/icons/375333729897414656/a024824d98cbeaff25b66eba15b7b6ad.png'
 				},
 				'title': title,
-				'description': (`${additionalDescription}\n${userListPages[i]}`).trim().substring(0, 1900),
+				'description': (`${additionalDescription}\n\n${userListPages[i]}`).trim().substring(0, 1900),
 				'footer': {
 					'text': userListPages.length > 1 ? `Страница [${i + 1}/${userListPages.length}]` : ''
 				}
