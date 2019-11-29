@@ -4,7 +4,7 @@
 	"urlSite": "https://honeymoon.rip/",
 	"urlDynMapRequest": "https://map.honeymoon.rip/up/world/equestria/",
 	"useTimestamp": true,
-	"maxOnline": 100,
+	"maxOnline": 20,
 	"onlineRecordFName": "onlineRecord.txt",
 	"userAvatarsPath": "./user_avatars/",
 	"userAvatarsFName": "user_avatars.txt",
