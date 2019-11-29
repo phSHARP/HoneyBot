@@ -218,7 +218,7 @@ function getUserInfo(username, color = 7265400) {
 function sendUserList(channel, title = '', additionalDescription = '', userList = [], usersPerPage = 15, color = 7265400) {
 	userList = userList.filter(name => name !== '_apply').sort();
 	if (userAvatars._apply)
-		userList = userList.map(name => userAvatars[name] !== undefined ? `${userAvatars[name]} ${name}` : name);
+		userList = userList.map(name => userAvatars[name] !== undefined ? `${userAvatars[name]} ${name}` : `<:unknown:650033177460604938> ${name}`);
 	var userListPages = [];
 	for (var i = 0; i < userList.length / usersPerPage; i++)
 		userListPages.push(userList.slice(i * usersPerPage, Math.min((i + 1) * usersPerPage, userList.length)).join('\n').trim().substring(0, 1900));
