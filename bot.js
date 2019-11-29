@@ -272,7 +272,7 @@ function sendUserListByType(channel, messageType = 'online', userList = [], user
 					}
 					var userCountMax = Math.max(userCount, maxOnline);
 					title = `Онлайн [${userCount}/${userCountMax}]`;
-					additionalDescription = `\`Рекорд [${onlineRecord}]\``;
+					additionalDescription = `\`Рекорд: ${onlineRecord}\``;
 					sendUserList(channel, title, additionalDescription, userList, usersPerPage, color);
 				} catch (e) {
 					logger.info(`Can't work with ${options.url} due to this error:`);
