@@ -273,6 +273,7 @@ function sendUserListByType(channel, messageType = 'online', userList = [], user
 					var userCountMax = Math.max(userCount, maxOnline);
 					title = `Онлайн [${userCount}/${userCountMax}]`;
 					additionalDescription = `\`Рекорд: ${onlineRecord}\``;
+					additionalDescription += `\n\`Погода: ${content.hasStorm ? 'Дождь' : 'Ясно'}${content.isThundering ? ' с грозой' : ''}\``;
 					sendUserList(channel, title, additionalDescription, userList, usersPerPage, color);
 				} catch (e) {
 					logger.info(`Can't work with ${options.url} due to this error:`);
