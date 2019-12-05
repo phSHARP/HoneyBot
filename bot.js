@@ -18,6 +18,7 @@ const onlineRecordFullName = cfg.onlineRecordFName;
 const userAvatarsFullName = cfg.userAvatarsPath + cfg.userAvatarsFName;
 const userInfoFullName = cfg.userInfoPath + cfg.userInfoFName;
 const willListFullName = cfg.willListPath + cfg.willListFName;
+const waitListFullName = cfg.waitListPath + cfg.waitListFName;
 
 var botLoaded = false;
 var botMaintenance = false;
@@ -25,6 +26,7 @@ var onlineRecord = 0;
 var userAvatars = { _apply: false };
 var userInfo = { _global_lock: false, _default: 'загрузка...' };
 var willList = [];
+var waitList = {};
 
 // Listen for 'SIGTERM' signal
 process.on('SIGTERM', () => {
@@ -94,7 +96,7 @@ setInterval(() => {
 			bot.user.setActivity(errorMessage, { type: 'WATCHING' }).catch((e) => {});
 		}
 	});
-}, 1000).unref();
+}, 2000).unref();
 
 // Generates random int from min (included) to max (not included)
 function randomInt(min, max) {
@@ -145,6 +147,15 @@ function saveWillList() {
 	fs.writeFileSync(willListFullName, willListStr.trim());
 }
 
+// Loads waitList from the file
+function loadWaitList() {
+	waitList = JSON.parse(fs.readFileSync(waitListFullName, 'utf8'));
+}
+
+// Saves waitList to the file
+function saveWaitList() {
+	fs.writeFileSync(waitListFullName, JSON.stringify(waitList));
+
 // Loads info about onlineRecord from the file
 function loadOnlineRecord() {
 	onlineRecord = parseInt(fs.readFileSync(onlineRecordFullName, 'utf8'));
@@ -173,11 +184,6 @@ function getHelp(color = 0) {
 					'inline': true
 				},
 				{
-					'name': `${prefix}ping`,
-					'value': 'Узнать задержку Discord API.',
-					'inline': true
-				},
-				{
 					'name': `${prefix}online | ${prefix}o`,
 					'value': 'Вывести список онлайна на сервере.',
 					'inline': true
@@ -200,6 +206,19 @@ function getHelp(color = 0) {
 				{
 					'name': `${prefix}setart <name> <link>`,
 					'value': `Добавить/изменить ссылку на арт персонажа (выводимое по команде ${prefix}info).`,
+					'inline': true
+				},
+				{
+					'name': `${prefix}will [...] | ${prefix}w [...]`,
+					'value':
+`${prefix}will     ->     вывести список персонажей, которые собираются сегодня зайти на сервер;
+${prefix}will <name1> [<name2> ...]     ->     добавить в список данного(-ых) персонажа(-ей);
+${prefix}will <name1> [<name2> ...] _remove_     ->     удалить из списка данного(-ых) персонажа(-ей).`,
+					'inline': false
+				},
+				{
+					'name': `${prefix}ping`,
+					'value': 'Узнать задержку Discord API.',
 					'inline': true
 				}
 			]
@@ -290,7 +309,7 @@ function sendUserListByType(channel, messageType = 'online', userList = [], user
 					var userCountMax = Math.max(userCount, maxOnline);
 					title = `Онлайн [${userCount}/${userCountMax}]`;
 					additionalDescription = `\`Рекорд: ${onlineRecord}\``;
-					additionalDescription += `\n\`Погода: ${content.hasStorm ? 'Дождь' : 'Ясно'}${content.isThundering ? ' с грозой' : ''}\``;
+					additionalDescription += `\n\`Погода: ${content.hasStorm ? 'Осадки' : 'Ясно'}${content.isThundering ? ' с грозой' : ''}\``;
 					sendUserList(channel, title, additionalDescription, userList, usersPerPage, color);
 				} catch (e) {
 					logger.info(`Can't work with ${options.url} due to this error:`);
@@ -305,6 +324,8 @@ function sendUserListByType(channel, messageType = 'online', userList = [], user
 		break;
 		case 'will':
 			title = 'Сегодня будут:';
+			if (userList == [])
+				additionalDescription = '_\\*звук сверчков\\*_';
 			sendUserList(channel, title, additionalDescription, userList, usersPerPage, color);
 		break;
 	}
@@ -586,14 +607,18 @@ bot.on('message', (message) => {
 			}
 		break;
 		// ?wait
-		case 'wait':
-			let waitNames = [''];
-			let expirationTime = 0;  // Never
-			if (args.length > 0) {
+		/*case 'wait':
+			let expirationTime = -1;  // Never
+			let numberOfTimes = 1;
+			if (args.length === 0) {
 				
 			}
-			//sendNotification(message.channel, `${deleteinfoNotification} <:OSsloth:338961408320339968>`);
-		break;
+			else {
+				let waitNotification = '';
+				
+				sendNotification(message.channel, `${waitNotification} <:OSsloth:338961408320339968>`);
+			}
+		break;*/
 	}
 });
 
@@ -602,4 +627,5 @@ loadOnlineRecord()
 loadUserAvatars();
 loadUserInfo();
 loadWillList();
+loadWaitList();
 bot.login(auth.token);

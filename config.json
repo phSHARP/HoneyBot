@@ -13,5 +13,7 @@
 	"userInfoPath": "./user_info/",
 	"userInfoFName": "user_info.txt",
 	"willListPath": "./will_list/",
-	"willListFName": "will_list.txt"
+	"willListFName": "will_list.txt",
+	"waitListPath": "./wait_list/",
+	"waitListFName": "wait_list.txt"
 }
