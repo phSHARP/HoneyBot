@@ -212,9 +212,9 @@ function getHelp(color = 0) {
 				{
 					'name': `${prefix}will [...] | ${prefix}w [...]`,
 					'value':
-`${prefix}will     ->     вывести список персонажей, которые собираются сегодня зайти на сервер;
-${prefix}will <name1> [<name2> ...]     ->     добавить в список данного(-ых) персонажа(-ей);
-${prefix}will <name1> [<name2> ...] _remove_     ->     удалить из списка данного(-ых) персонажа(-ей).`,
+`${prefix}will \`->\` вывести список персонажей, собирающихся зайти на сервер сегодня;
+${prefix}will <name1> [<name2> ...] \`->\` добавить в список персонажа(-ей);
+${prefix}will <name1> [<name2> ...] _remove_ \`->\` удалить из списка персонажа(-ей).`,
 					'inline': false
 				},
 				{
@@ -325,7 +325,7 @@ function sendUserListByType(channel, messageType = 'online', userList = [], user
 		break;
 		case 'will':
 			title = 'Сегодня будут:';
-			if (userList == [])
+			if (userList.length === 0)
 				additionalDescription = '_\\*звук сверчков\\*_';
 			sendUserList(channel, title, additionalDescription, userList, usersPerPage, color);
 		break;
