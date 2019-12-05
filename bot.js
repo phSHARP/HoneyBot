@@ -571,13 +571,15 @@ bot.on('message', (message) => {
 				let willNotification = '';
 				if (args.length > 1 && args[args.length - 1] == 'remove') {
 					let namesToDelete = args.slice(0, args.length - 1);
-					willList.filter(name => !namesToDelete.includes(name));
+					willList = willList.filter(name => !namesToDelete.includes(name));
 					saveWillList();
 					willNotification = `Персонаж${namesToDelete.length === 1 ? '' : 'и'} успешно удален${namesToDelete.length === 1 ? '' : 'ы'} из списка \"**Сегодня будут**\".`;
 				}
 				else {
-					for (var i = 0; i < args.length; i++)
-						willList.push(args[i]);
+					let namesToAdd = args.slice();
+					namesToAdd = namesToAdd.filter(name => !willList.includes(name));
+					for (var i = 0; i < namesToAdd.length; i++)
+						willList.push(namesToAdd[i]);
 					saveWillList();
 					willNotification = `Персонаж${args.length === 1 ? '' : 'и'} успешно добавлен${args.length === 1 ? '' : 'ы'} в список \"**Сегодня будут**\".`;
 				}
