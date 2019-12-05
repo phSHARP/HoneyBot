@@ -8,19 +8,23 @@ const cfg = require('./config.json');
 
 const creatorID = cfg.creatorID;
 const prefix = cfg.prefix;
+const notificationMessageLifetime = cfg.notificationMessageLifetime;
 const urlSite = cfg.urlSite;
 const urlDynMapRequest = cfg.urlDynMapRequest;
 const useTimestamp = cfg.useTimestamp;
 const maxOnline = cfg.maxOnline;
-const onlineRecordFName = cfg.onlineRecordFName;
+const maxUsersToWait = cfg.maxUsersToWait;
+const onlineRecordFullName = cfg.onlineRecordFName;
 const userAvatarsFullName = cfg.userAvatarsPath + cfg.userAvatarsFName;
 const userInfoFullName = cfg.userInfoPath + cfg.userInfoFName;
+const willListFullName = cfg.willListPath + cfg.willListFName;
 
 var botLoaded = false;
 var botMaintenance = false;
 var onlineRecord = 0;
 var userAvatars = { _apply: false };
 var userInfo = { _global_lock: false, _default: 'загрузка...' };
+var willList = [];
 
 // Listen for 'SIGTERM' signal
 process.on('SIGTERM', () => {
@@ -128,14 +132,27 @@ function saveUserInfo() {
 	fs.writeFileSync(userInfoFullName, JSON.stringify(userInfo));
 }
 
+// Loads willList from the file
+function loadWillList() {
+	willList = fs.readFileSync(willListFullName, 'utf8').split(/\r\n|\r|\n/).map(str => str.trim()).filter(str => str != '');
+}
+
+// Saves willList to the file
+function saveWillList() {
+	var willListStr = '';
+	for (var i = 0; i < willList.length; i++)
+		willListStr += willList[i] + '\n';
+	fs.writeFileSync(userInfoFullName, willListStr.trim());
+}
+
 // Loads info about onlineRecord from the file
 function loadOnlineRecord() {
-	onlineRecord = parseInt(fs.readFileSync(onlineRecordFName, 'utf8'));
+	onlineRecord = parseInt(fs.readFileSync(onlineRecordFullName, 'utf8'));
 }
 
 // Saves info about onlineRecord to the file
 function saveOnlineRecord() {
-	fs.writeFileSync(onlineRecordFName, onlineRecord);
+	fs.writeFileSync(onlineRecordFullName, onlineRecord);
 }
 
 // Generates ping message
@@ -177,12 +194,12 @@ function getHelp(color = 0) {
 				},
 				{
 					'name': `${prefix}setinfo <name> <description...>`,
-					'value': 'Добавить/изменить описание конкретного персонажа (выводимое по команде ?info).',
+					'value': `Добавить/изменить описание персонажа (выводимое по команде ${prefix}info).`,
 					'inline': true
 				},
 				{
 					'name': `${prefix}setart <name> <link>`,
-					'value': 'Добавить/изменить ссылку на арт данного персонажа (отображаемое по команде ?info).',
+					'value': `Добавить/изменить ссылку на арт персонажа (выводимое по команде ${prefix}info).`,
 					'inline': true
 				}
 			]
@@ -286,6 +303,10 @@ function sendUserListByType(channel, messageType = 'online', userList = [], user
 			title = `Зарегистрировано: ${userCount}`;
 			sendUserList(channel, title, additionalDescription, userList, usersPerPage, color);
 		break;
+		case 'will':
+			title = 'Сегодня будут:';
+			sendUserList(channel, title, additionalDescription, userList, usersPerPage, color);
+		break;
 	}
 }
 
@@ -293,10 +314,18 @@ function sendUserListByType(channel, messageType = 'online', userList = [], user
 function sendMessageList(channel, contentList = [], page = 0, hasStop = false) {
 	if (contentList.length > 0)
 		channel.send(contentList[page])
-			.then(msg => {
+			.then((msg) => {
 				if (contentList.length > 1)
 					operateWithMessageList(msg, contentList, page, hasStop);
 			});
+}
+
+// Sends message that will be deleted in "notificationMessageLifetime" milliseconds
+function sendNotification(channel, content = '') {
+	if (!content || content.trim() == '')
+		return;
+	channel.send(content)
+		.then((msg) => msg.delete(notificationMessageLifetime));
 }
 
 // Operate with message list reactions
@@ -374,6 +403,7 @@ bot.on('message', (message) => {
 		case 'o':   cmd = 'online';         break;
 		case 'l':   cmd = 'list';           break;
 		case 'i':   cmd = 'info';           break;
+		case 'w':   cmd = 'will';           break;
 	}
 	switch (cmd) {
 		// ?re
@@ -389,6 +419,7 @@ bot.on('message', (message) => {
 				loadUserAvatars();
 				loadUserInfo();
 				logger.info(`Reloaded userInfo and userAvatars maps at ${dateNow()}`);
+				sendNotification(message.channel, 'Файлы аватаров и информации о персонажах успешно перезагружены. <:OSsloth:338961408320339968>');
 			}
 		break;
 		// ?avatarswitch
@@ -396,19 +427,28 @@ bot.on('message', (message) => {
 			if (message.author.id == creatorID) {
 				userAvatars._apply = !userAvatars._apply;
 				saveUserAvatars();
+				sendNotification(message.channel, 'Флаг отображения аватаров персонажей успешно переключен. <:OSsloth:338961408320339968>');
 			}
 		break;
 		// ?avatar
 		case 'avatar':
 			// Setup emoji-avatar for the user
 			if (message.author.id == creatorID) {
-				if (args.length === 0)       // Clear all the user avatars
+				let avatarNotification = '';
+				if (args.length === 0) {       // Clear all the user avatars
 					userAvatars = { _apply: userAvatars._apply };
-				else if (args.length === 1)  // Clear the user's avatar
+					avatarNotification = 'Все аватары персонажей успешно удалены.';
+				}
+				else if (args.length === 1) {  // Clear the user's avatar
 					delete userAvatars[args[0]];
-				else                         // Otherwise setup it
+					avatarNotification = 'Аватар данного персонажа успешно удален.';
+				}
+				else {                         // Otherwise setup it
 					userAvatars[args[0]] = args[1];
+					avatarNotification = 'Аватар данного персонажа успешно изменен.';
+				}
 				saveUserAvatars();
+				sendNotification(message.channel, `${avatarNotification} <:OSsloth:338961408320339968>`);
 			}
 		break;
 		// ?ping
@@ -418,14 +458,15 @@ bot.on('message', (message) => {
 		// ?help
 		case 'help':
 			let color = randomInt(0, 16777216);
-			message.author.send(getHelp(color)).catch((e) => {
-				if (e !== undefined) {
-					message.channel.send(
+			message.author.send(getHelp(color))
+				.catch((e) => {
+					if (e !== undefined) {
+						message.channel.send(
 `Сорре, не хватает прав, чтобы отправить сообщение тебе в ЛС. <:OSsloth:338961408320339968>
 Выкладываю текст справки в данный канал:`);
-					message.channel.send(getHelp(color));
-				}
-			});
+						message.channel.send(getHelp(color));
+					}
+				});
 		break;
 		// ?online
 		case 'online':
@@ -457,6 +498,7 @@ bot.on('message', (message) => {
 				else
 					userInfo[args[0]].description = contentInfo;
 				saveUserInfo();
+				sendNotification(message.channel, 'Информация о персонаже успешно изменена. <:OSsloth:338961408320339968>');
 			}
 		break;
 		// ?setart
@@ -475,27 +517,81 @@ bot.on('message', (message) => {
 				else
 					userInfo[args[0]].art = args[1];
 				saveUserInfo();
+				sendNotification(message.channel, 'Изображение/арт персонажа успешно изменены. <:OSsloth:338961408320339968>');
 			}
 		break;
 		// ?infolockswitch
 		case 'infolockswitch':
 			if (message.author.id == creatorID) {
-				if (args.length === 0)
+				let infolockNotification = '';
+				if (args.length === 0) {
 					userInfo._global_lock = !userInfo._global_lock;
-				else if (userInfo[args[0]] !== undefined)
+					infolockNotification = 'Флаг глобальной блокировки изменения информации о персонажах успешно переключен.';
+				}
+				else if (userInfo[args[0]] !== undefined) {
 					userInfo[args[0]].locked = !userInfo[args[0]].locked;
+					infolockNotification = 'Флаг блокировки изменения информации о данном персонаже успешно переключен.';
+				}
+				else
+					infolockNotification = 'Не найдено информации о данном персонаже.';
 				saveUserInfo();
+				sendNotification(message.channel, `${infolockNotification} <:OSsloth:338961408320339968>`);
 			}
 		break;
 		// ?deleteinfo
 		case 'deleteinfo':
 			if (message.author.id == creatorID) {
-				if (args.length === 0)
+				let deleteinfoNotification = '';
+				if (args.length === 0) {
 					userInfo = { _global_lock: false, _default: userInfo._default }
-				else
+					deleteinfoNotification = 'Информация обо всех персонажах успешно удалена.';
+				}
+				else {
 					delete userInfo[args[0]];
+					deleteinfoNotification = 'Информация о данном персонаже успешно удалена.';
+				}
 				saveUserInfo();
+				sendNotification(message.channel, `${deleteinfoNotification} <:OSsloth:338961408320339968>`);
 			}
+		break;
+		// ?will
+		case 'will':
+			if (args.length === 0) {
+				fs.stat(willListFullName, (err, stats) => {
+					let lastWillListModifyDay = Math.floor(stats.mtimeMs/(1000*60*60*24));
+					let currentDay = Math.floor(Date.now()/(1000*60*60*24));
+					if (!err && lastWillListModifyDay != currentDay) {
+						willList = [];
+						saveWillList();
+					}
+					sendUserListByType(message.channel, 'will', willList);
+				});
+			}
+			else {
+				let willNotification = '';
+				if (args.length > 1 && args[args.length - 1] == 'remove') {
+					let namesToDelete = args.slice(0, args.length - 1);
+					willList.filter(name => !namesToDelete.includes(name));
+					saveWillList();
+					willNotification = `Персонаж${namesToDelete.length === 1 ? '' : 'и'} успешно удален${namesToDelete.length === 1 ? '' : 'ы'} из списка \"**Сегодня будут**\".`;
+				}
+				else {
+					for (var i = 0; i < args.length; i++)
+						willList.push(args[i]);
+					saveWillList();
+					willNotification = `Персонаж${args.length === 1 ? '' : 'и'} успешно добавлен${args.length === 1 ? '' : 'ы'} в список \"**Сегодня будут**\".`;
+				}
+				sendNotification(message.channel, `${willNotification} <:OSsloth:338961408320339968>`);
+			}
+		break;
+		// ?wait
+		case 'wait':
+			let waitNames = [''];
+			let expirationTime = 0;  // Never
+			if (args.length > 0) {
+				
+			}
+			//sendNotification(message.channel, `${deleteinfoNotification} <:OSsloth:338961408320339968>`);
 		break;
 	}
 });
@@ -504,4 +600,5 @@ bot.on('message', (message) => {
 loadOnlineRecord()
 loadUserAvatars();
 loadUserInfo();
+loadWillList();
 bot.login(auth.token);

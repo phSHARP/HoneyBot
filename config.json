@@ -1,13 +1,17 @@
 {
 	"creatorID": 193036945713135616,
 	"prefix": "?",
+	"notificationMessageLifetime": 5000,
 	"urlSite": "https://honeymoon.rip/",
 	"urlDynMapRequest": "https://map.honeymoon.rip/up/world/equestria/",
 	"useTimestamp": true,
 	"maxOnline": 20,
-	"onlineRecordFName": "onlineRecord.txt",
+	"maxUsersToWait": 30,
+	"onlineRecordFName": "online_record.txt",
 	"userAvatarsPath": "./user_avatars/",
 	"userAvatarsFName": "user_avatars.txt",
 	"userInfoPath": "./user_info/",
-	"userInfoFName": "user_info.txt"
+	"userInfoFName": "user_info.txt",
+	"willListPath": "./will_list/",
+	"willListFName": "will_list.txt"
 }
