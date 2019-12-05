@@ -155,6 +155,7 @@ function loadWaitList() {
 // Saves waitList to the file
 function saveWaitList() {
 	fs.writeFileSync(waitListFullName, JSON.stringify(waitList));
+}
 
 // Loads info about onlineRecord from the file
 function loadOnlineRecord() {
@@ -623,7 +624,7 @@ bot.on('message', (message) => {
 });
 
 // Initialization block
-loadOnlineRecord()
+loadOnlineRecord();
 loadUserAvatars();
 loadUserInfo();
 loadWillList();
