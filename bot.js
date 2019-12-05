@@ -576,10 +576,9 @@ bot.on('message', (message) => {
 					willNotification = `Персонаж${namesToDelete.length === 1 ? '' : 'и'} успешно удален${namesToDelete.length === 1 ? '' : 'ы'} из списка \"**Сегодня будут**\".`;
 				}
 				else {
-					let namesToAdd = args.slice();
-					namesToAdd = namesToAdd.filter(name => !willList.includes(name));
-					for (var i = 0; i < namesToAdd.length; i++)
-						willList.push(namesToAdd[i]);
+					for (var i = 0; i < args.length; i++)
+						if (!willList.includes(args[i]))
+							willList.push(args[i]);
 					saveWillList();
 					willNotification = `Персонаж${args.length === 1 ? '' : 'и'} успешно добавлен${args.length === 1 ? '' : 'ы'} в список \"**Сегодня будут**\".`;
 				}
