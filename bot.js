@@ -142,7 +142,7 @@ function saveWillList() {
 	var willListStr = '';
 	for (var i = 0; i < willList.length; i++)
 		willListStr += willList[i] + '\n';
-	fs.writeFileSync(userInfoFullName, willListStr.trim());
+	fs.writeFileSync(willListFullName, willListStr.trim());
 }
 
 // Loads info about onlineRecord from the file
