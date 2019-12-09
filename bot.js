@@ -749,7 +749,7 @@ bot.on('message', (message) => {
 				else {
 					if (waitList[message.author.id] === undefined)
 						waitList[message.author.id] = {};
-					if (Object.keys(waitList[message.author.id]) < maxUsersToWait) {
+					if (Object.keys(waitList[message.author.id]).length < maxUsersToWait) {
 						waitList[message.author.id][args[0].substring(0, 30)] = {};
 						saveWaitList();
 						waitNotification = 'Персонаж успешно добавлен в ваш список ожидания.';
