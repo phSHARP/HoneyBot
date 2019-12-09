@@ -416,7 +416,7 @@ function sendUserListByType(channel, messageType = 'online', userList = [], user
 				if (!onlineList.includes(userList[i]) && userInfo[userList[i]] !== undefined && userInfo[userList[i]].lastSeenAt !== undefined && Math.floor((Date.now() - userInfo[userList[i]].lastSeenAt)/(1000*60*60*24)) === 0)
 					postStr = ` ▪ \`${getUserOfflineTime(userList[i])}\``;
 				if (willList[userList[i]] != '')
-					postStr += `\n ℹ _${willList[userList[i]]}_`;
+					postStr += `\n▪ ℹ _${willList[userList[i]]}_`;
 				postUserDescriptionList.push(postStr);
 			}
 			sendUserList(channel, userList, title, additionalDescription, preUserDescriptionList, postUserDescriptionList, usersPerPage, color);
