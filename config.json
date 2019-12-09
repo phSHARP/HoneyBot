@@ -4,6 +4,8 @@
 	"notificationMessageLifetime": 5000,
 	"urlSite": "https://honeymoon.rip/",
 	"urlDynMapRequest": "https://map.honeymoon.rip/up/world/equestria/",
+	"urlStatusOnline": "https://i.imgur.com/hMqL8KK.png",
+	"urlStatusOffline": "https://i.imgur.com/8a4bV2h.png",
 	"useTimestamp": true,
 	"maxOnline": 20,
 	"maxUsersToWait": 30,

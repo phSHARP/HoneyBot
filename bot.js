@@ -11,6 +11,8 @@ const prefix = cfg.prefix;
 const notificationMessageLifetime = cfg.notificationMessageLifetime;
 const urlSite = cfg.urlSite;
 const urlDynMapRequest = cfg.urlDynMapRequest;
+const urlStatusOnline = cfg.urlStatusOnline;
+const urlStatusOffline = cfg.urlStatusOffline;
 const useTimestamp = cfg.useTimestamp;
 const maxOnline = cfg.maxOnline;
 const maxUsersToWait = cfg.maxUsersToWait;
@@ -23,9 +25,10 @@ const waitListFullName = cfg.waitListPath + cfg.waitListFName;
 var botLoaded = false;
 var botMaintenance = false;
 var onlineRecord = 0;
+var onlineList = [];
 var userAvatars = { _apply: false };
 var userInfo = { _global_lock: false, _default: 'загрузка...' };
-var willList = [];
+var willList = {};
 var waitList = {};
 
 // Listen for 'SIGTERM' signal
@@ -82,17 +85,23 @@ setInterval(() => {
 		timeout: 3000
 	}
 	request(options, (error, response, body) => {
-		if (error)
+		if (error) {
+			updateOnlineList();
 			bot.user.setActivity(errorMessage, { type: 'WATCHING' }).catch((e) => {});
+			return;
+		}
 		try {
-			var content     = JSON.parse(body);
-			var onlineCount = content.currentcount;
+			var content = JSON.parse(body);
+			var newOnlineList = content.players.map(player => player.name.replace(/([\*\|_~`])/g, '\\$1'));
+			updateOnlineList(newOnlineList);
+			var onlineCount = newOnlineList.length;
 			if (onlineCount > onlineRecord) {
 				onlineRecord = onlineCount;
 				saveOnlineRecord();
 			}
 			bot.user.setActivity(`онлайн [${onlineCount}/${maxOnline}]`, { type: 'WATCHING' }).catch((e) => {});
 		} catch (e) {
+			updateOnlineList();
 			bot.user.setActivity(errorMessage, { type: 'WATCHING' }).catch((e) => {});
 		}
 	});
@@ -101,6 +110,18 @@ setInterval(() => {
 // Generates random int from min (included) to max (not included)
 function randomInt(min, max) {
 	return Math.floor(Math.random() * (max - min)) + min;
+}
+
+function russifyNumber(number, variants = ['', '', '']) {
+	// If variants are:          ['дней', 'день', 'дня']
+	// the result will be then:  0 дней, 1 день, 2 дня...
+	return number < 10 || number > 20
+					? number%10 == 1
+						? variants[1]
+					: number%10 > 1 && number%10 < 5
+						? variants[2]
+					: variants[0]
+				: variants[0]
 }
 
 // Returns request url to DynMap
@@ -136,15 +157,17 @@ function saveUserInfo() {
 
 // Loads willList from the file
 function loadWillList() {
-	willList = fs.readFileSync(willListFullName, 'utf8').split(/\r\n|\r|\n/).map(str => str.trim()).filter(str => str != '');
+	//willList = fs.readFileSync(willListFullName, 'utf8').split(/\r\n|\r|\n/).map(str => str.trim()).filter(str => str != '');
+	willList = JSON.parse(fs.readFileSync(willListFullName, 'utf8'));
 }
 
 // Saves willList to the file
 function saveWillList() {
-	var willListStr = '';
+	/*var willListStr = '';
 	for (var i = 0; i < willList.length; i++)
 		willListStr += willList[i] + '\n';
-	fs.writeFileSync(willListFullName, willListStr.trim());
+	fs.writeFileSync(willListFullName, willListStr.trim());*/
+	fs.writeFileSync(willListFullName, JSON.stringify(willList));
 }
 
 // Loads waitList from the file
@@ -170,6 +193,43 @@ function saveOnlineRecord() {
 // Generates ping message
 function generatePing() {
 	return `Понг! \`${Math.round(bot.ping)}мс\` <:OSsloth:338961408320339968>`;
+}
+
+// Gets localized user offline time or empty string if it doesn't exist
+function getUserOfflineTime(username = '') {
+	if (userInfo[username] === undefined || userInfo[username].lastSeenAt === undefined)
+		return '';
+	var difference = new Date(Date.now() - userInfo[username].lastSeenAt));
+	var days = Math.floor(difference.getTime()/(1000*60*60*24));
+	if (days > 0)
+		return `заходил(а) ${days} ${russifyNumber(days, ['дней', 'день', 'дня'])} назад`;
+	var hours = uptime.getUTCHours();
+	if (hours > 0)
+		return `заходил(а) ${hours} ${russifyNumber(hours, ['часов', 'час', 'часа'])} назад`;
+	var minutes = uptime.getUTCMinutes();
+	if (minutes > 0)
+		return `заходил(а) ${minutes} ${russifyNumber(minutes, ['часов', 'час', 'часа'])} назад`;
+	var seconds = uptime.getUTCSeconds();
+	if (seconds > 0)
+		return `заходил(а) ${secondsRus} ${russifyNumber(hours, ['часов', 'час', 'часа'])} назад`;
+	return 'заходил(а) только что';
+}
+
+// Updates onlineList and lastSeenAt parameter of every user from userInfo
+function updateOnlineList(newList = []) {
+	// [...who_has_gone[], ...who_has_come[]]
+	var updateStatusList = [...onlineList.filter(name => !newList.includes(name)), ...newList.filter(name => !onlineList.includes(name))];
+	for (var i = 0; i < updateStatusList.length; i++)
+		if (userInfo[updateStatusList[i]] === undefined)
+			userInfo[updateStatusList[i]] = {
+				lastSeenAt: Date.now(),
+				locked: false
+			};
+		else
+			userInfo[updateStatusList[i]].lastSeenAt = Date.now();
+	onlineList = newList.slice();
+	if (updateStatusList.length > 0)
+		saveUserInfo();
 }
 
 // Returns help message
@@ -213,8 +273,8 @@ function getHelp(color = 0) {
 					'name': `${prefix}will [...] | ${prefix}w [...]`,
 					'value':
 `${prefix}will \`->\` вывести список персонажей, собирающихся зайти на сервер сегодня;
-${prefix}will <name1> [<name2> ...] \`->\` добавить в список персонажа(-ей);
-${prefix}will <name1> [<name2> ...] _remove_ \`->\` удалить из списка персонажа(-ей).`,
+${prefix}will <name> [<comment...>] \`->\` добавить в список персонажа с соответствующим комментарием (не обязательно);
+${prefix}will <name> _remove_ \`->\` удалить персонажа из списка.`,
 					'inline': false
 				},
 				{
@@ -229,6 +289,13 @@ ${prefix}will <name1> [<name2> ...] _remove_ \`->\` удалить из спис
 
 // Returns info about user
 function getUserInfo(username, color = 7265400) {
+	var footerText = '';
+	if (onlineList.includes(username))
+		footerText = 'в сети';
+	else {
+		var userOfflineTime = getUserOfflineTime(username);
+		footerText = userOfflineTime == '' ? 'не в сети' : userOfflineTime;
+	}
 	return {
 		'embed': {
 			'color': color,
@@ -238,24 +305,37 @@ function getUserInfo(username, color = 7265400) {
 				'icon_url': 'https://cdn.discordapp.com/icons/375333729897414656/a024824d98cbeaff25b66eba15b7b6ad.png'
 			},
 			'title': `📝 Информация: ${username}`,
+			'url': `https://my.honeymoon.rip/skins/${username}.png`,
 			'thumbnail': {
 				'url': userAvatars[username] !== undefined
 					? `https://cdn.discordapp.com/emojis/${userAvatars[username].match(/<a?:[^ ]*:(\d*)>/)[1]}.${userAvatars[username].startsWith('<a') ? 'gif' : 'png'}`
 					: `https://i.imgur.com/YEB3QPU.png` //`https://cdn.discordapp.com/embed/avatars/${randomInt(0, 5)}.png`
 			},
-			'description': `${userInfo[username] !== undefined ? userInfo[username].description : userInfo._default}`,
+			'description': `${userInfo[username] !== undefined && userInfo[username].description !== undefined ? userInfo[username].description : userInfo._default}`,
 			'image': {
-				'url': `${userInfo[username] !== undefined ? userInfo[username].art : ''}`
+				'url': `${userInfo[username] !== undefined && userInfo[username].art !== undefined ? userInfo[username].art : ''}`
+			},
+			'footer': {
+				'icon_url': onlineList.includes(username) ? urlStatusOnline : urlStatusOffline,
+				'text': footerText
 			}
 		}
 	};
 }
 
 // Sends user list of the Honeymoon server
-function sendUserList(channel, title = '', additionalDescription = '', userList = [], usersPerPage = 15, color = 7265400) {
-	userList = userList.filter(name => name !== '_apply').sort();
+function sendUserList(channel, userList = [], title = '', additionalDescription = '', preUserDescriptionList = [], postUserDescriptionList = [], usersPerPage = 15, color = 7265400) {
+	userList = userList.sort();
+	for (var i = 0; i < userList.length; i++)
+		userList[i] = userList[i].substring(0, 30);
+	if (userList.length == preUserDescriptionList.length)
+		for (var i = 0; i < preUserDescriptionList.length; i++)
+			userList[i] = `${preUserDescriptionList[i].substring(0, 80)}${userList[i]}`;
+	if (userList.length == postUserDescriptionList.length)
+		for (var i = 0; i < postUserDescriptionList.length; i++)
+			userList[i] = `${userList[i]}${postUserDescriptionList[i].substring(0, 80)}`;
 	if (userAvatars._apply)
-		userList = userList.map(name => userAvatars[name] !== undefined ? `${userAvatars[name]} ${name}` : `<:unknown:650033177460604938> ${name}`);
+		userList = userList.map(name => name != '_apply' && userAvatars[name] !== undefined ? `${userAvatars[name]} ${name}` : `<:unknown:650033177460604938> ${name}`);
 	var userListPages = [];
 	for (var i = 0; i < userList.length / usersPerPage; i++)
 		userListPages.push(userList.slice(i * usersPerPage, Math.min((i + 1) * usersPerPage, userList.length)).join('\n').trim().substring(0, 1900));
@@ -283,8 +363,8 @@ function sendUserList(channel, title = '', additionalDescription = '', userList 
 // Sends user list of the Honeymoon server according to message (list) type
 // messageType in ['online', 'list']
 function sendUserListByType(channel, messageType = 'online', userList = [], usersPerPage = 15, color = 7265400) {
-	var title = ''; var additionalDescription = '';
-	var userCount = userList.filter(name => name !== '_apply').length;
+	var title = ''; var additionalDescription = ''; var preUserDescriptionList = []; var postUserDescriptionList = [];
+	var userCount = userList.length;
 	switch (messageType) {
 		case 'online':
 			var errorMessage = 'Не могу получить доступ к динамической карте. <:OSsloth:338961408320339968>';
@@ -311,7 +391,9 @@ function sendUserListByType(channel, messageType = 'online', userList = [], user
 					title = `Онлайн [${userCount}/${userCountMax}]`;
 					additionalDescription = `\`Рекорд: ${onlineRecord}\``;
 					additionalDescription += `\n\`Погода: ${content.hasStorm ? 'Осадки' : 'Ясно'}${content.isThundering ? ' с грозой' : ''}\``;
-					sendUserList(channel, title, additionalDescription, userList, usersPerPage, color);
+					if (userCount === 0)
+						additionalDescription += '\n\n_\\*звук сверчков\\*_';
+					sendUserList(channel, userList, title, additionalDescription, preUserDescriptionList, postUserDescriptionList, usersPerPage, color);
 				} catch (e) {
 					logger.info(`Can't work with ${options.url} due to this error:`);
 					logger.info(`    ${e}`);
@@ -321,13 +403,22 @@ function sendUserListByType(channel, messageType = 'online', userList = [], user
 		break;
 		case 'list':
 			title = `Зарегистрировано: ${userCount}`;
-			sendUserList(channel, title, additionalDescription, userList, usersPerPage, color);
+			sendUserList(channel, userList, title, additionalDescription, preUserDescriptionList, postUserDescriptionList, usersPerPage, color);
 		break;
 		case 'will':
 			title = 'Сегодня будут:';
 			if (userList.length === 0)
 				additionalDescription = '_\\*звук сверчков\\*_';
-			sendUserList(channel, title, additionalDescription, userList, usersPerPage, color);
+			for (var i = 0; i < userList.length; i++) {
+				preUserDescriptionList.push(onlineList.includes(userList[i]) ? '<:online:653584836237328384> ' : '<:offline:653584850783305739> ');
+				let postStr = '';
+				if (!onlineList.includes(userList[i]) && userInfo[userList[i]] !== undefined && userInfo[userList[i]].lastSeenAt !== undefined && userInfo[userList[i]].lastSeenAt/(1000*60*60*24) == Date.now()/(1000*60*60*24))
+					postStr = ` ▪ \`${getUserOfflineTime(userList[i])}\``;
+				if (willList[userList[i]] != '')
+					postStr += `\n▪ ▪ _${willList[userList[i]]}_`;
+				postUserDescriptionList.push(postStr);
+			}
+			sendUserList(channel, userList, title, additionalDescription, preUserDescriptionList, postUserDescriptionList, usersPerPage, color);
 		break;
 	}
 }
@@ -466,7 +557,7 @@ bot.on('message', (message) => {
 					avatarNotification = 'Аватар данного персонажа успешно удален.';
 				}
 				else {                         // Otherwise setup it
-					userAvatars[args[0]] = args[1];
+					userAvatars[args[0]] = args[0] != '_apply' ? args[1] : userAvatars[args[0]];
 					avatarNotification = 'Аватар данного персонажа успешно изменен.';
 				}
 				saveUserAvatars();
@@ -496,7 +587,7 @@ bot.on('message', (message) => {
 		break;
 		// ?list
 		case 'list':
-			sendUserListByType(message.channel, 'list', Object.keys(userAvatars));
+			sendUserListByType(message.channel, 'list', Object.keys(userAvatars).filter(name => name != '_apply'));
 		break;
 		// ?info
 		case 'info':
@@ -510,11 +601,10 @@ bot.on('message', (message) => {
 					message.channel.send('Изменение информации об этом персонаже недоступно. <:SlothGun:609715424317276160>');
 					return;
 				}
-				let contentInfo = content.replace(/"[^"]*"|[^ "]+/, '').trim();
+				let contentInfo = content.replace(/^"[^"]*"|^[^ "]+/, '').trim().substring(0, 1500);
 				if (userInfo[args[0]] === undefined)
 					userInfo[args[0]] = {
 						description: contentInfo,
-						art: '',
 						locked: false
 					};
 				else
@@ -532,7 +622,6 @@ bot.on('message', (message) => {
 				}
 				if (userInfo[args[0]] === undefined)
 					userInfo[args[0]] = {
-						description: userInfo._default,
 						art: args[1],
 						locked: false
 					};
@@ -583,26 +672,24 @@ bot.on('message', (message) => {
 					let lastWillListModifyDay = Math.floor(stats.mtimeMs/(1000*60*60*24));
 					let currentDay = Math.floor(Date.now()/(1000*60*60*24));
 					if (!err && lastWillListModifyDay != currentDay) {
-						willList = [];
+						willList = {};
 						saveWillList();
 					}
-					sendUserListByType(message.channel, 'will', willList);
+					sendUserListByType(message.channel, 'will', Object.keys(willList));
 				});
 			}
 			else {
 				let willNotification = '';
-				if (args.length > 1 && args[args.length - 1] == 'remove') {
-					let namesToDelete = args.slice(0, args.length - 1);
-					willList = willList.filter(name => !namesToDelete.includes(name));
+				if (args.length > 1 && args[1] == 'remove') {
+					delete willList[args[0]];
 					saveWillList();
-					willNotification = `Персонаж${namesToDelete.length === 1 ? '' : 'и'} успешно удален${namesToDelete.length === 1 ? '' : 'ы'} из списка \"**Сегодня будут**\".`;
+					willNotification = `Персонаж успешно удален из списка \"**Сегодня будут**\".`;
 				}
 				else {
-					for (var i = 0; i < args.length; i++)
-						if (!willList.includes(args[i]))
-							willList.push(args[i]);
+					let commentaryWill = content.replace(/^"[^"]*"|^[^ "]+/, '').trim().substring(0, 80);
+					willList[args[0].substring(0, 30)] = commentaryWill;
 					saveWillList();
-					willNotification = `Персонаж${args.length === 1 ? '' : 'и'} успешно добавлен${args.length === 1 ? '' : 'ы'} в список \"**Сегодня будут**\".`;
+					willNotification = `Персонаж успешно добавлен в список \"**Сегодня будут**\".`;
 				}
 				sendNotification(message.channel, `${willNotification} <:OSsloth:338961408320339968>`);
 			}
