@@ -351,7 +351,6 @@ function getUserInfo(username, color = 7265400) {
 
 // Sends user list of the Honeymoon server
 function sendUserList(channel, userList = [], title = '', additionalDescription = '', preUserDescriptionList = [], postUserDescriptionList = [], usersPerPage = 15, color = 7265400) {
-	userList = userList.sort();
 	for (var i = 0; i < userList.length; i++)
 		userList[i] = userList[i].substring(0, 30);
 	var userAndDescriptionList = userList.slice();
@@ -390,6 +389,7 @@ function sendUserList(channel, userList = [], title = '', additionalDescription 
 // Sends user list of the Honeymoon server according to message (list) type
 // messageType in ['online', 'list']
 function sendUserListByType(channel, messageType = 'online', userList = [], meta = '', usersPerPage = 15, color = 7265400) {
+	userList = userList.sort();
 	var title = ''; var additionalDescription = ''; var preUserDescriptionList = []; var postUserDescriptionList = [];
 	var userCount = userList.length;
 	switch (messageType) {
@@ -408,7 +408,7 @@ function sendUserListByType(channel, messageType = 'online', userList = [], meta
 				}
 				try {
 					var content = JSON.parse(body);
-					userList = content.players.map(player => player.name.replace(/([\*\|_~`])/g, '\\$1'));
+					userList = content.players.map(player => player.name.replace(/([\*\|_~`])/g, '\\$1')).sort();
 					userCount = userList.length;
 					if (userCount > onlineRecord) {
 						onlineRecord = userCount;
