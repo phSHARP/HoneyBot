@@ -208,10 +208,10 @@ function getUserOfflineTime(username = '') {
 		return `заходил(а) ${hours} ${russifyNumber(hours, ['часов', 'час', 'часа'])} назад`;
 	var minutes = difference.getUTCMinutes();
 	if (minutes > 0)
-		return `заходил(а) ${minutes} ${russifyNumber(minutes, ['часов', 'час', 'часа'])} назад`;
+		return `заходил(а) ${minutes} ${russifyNumber(minutes, ['минут', 'минуту', 'минуты'])} назад`;
 	var seconds = difference.getUTCSeconds();
 	if (seconds > 0)
-		return `заходил(а) ${secondsRus} ${russifyNumber(hours, ['часов', 'час', 'часа'])} назад`;
+		return `заходил(а) ${seconds} ${russifyNumber(seconds, ['секунд', 'секунду', 'секунды'])} назад`;
 	return 'заходил(а) только что';
 }
 
