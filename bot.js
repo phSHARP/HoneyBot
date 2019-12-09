@@ -328,17 +328,18 @@ function sendUserList(channel, userList = [], title = '', additionalDescription 
 	userList = userList.sort();
 	for (var i = 0; i < userList.length; i++)
 		userList[i] = userList[i].substring(0, 30);
-	if (userList.length == preUserDescriptionList.length)
-		for (var i = 0; i < preUserDescriptionList.length; i++)
-			userList[i] = `${preUserDescriptionList[i].substring(0, 80)}${userList[i]}`;
-	if (userList.length == postUserDescriptionList.length)
-		for (var i = 0; i < postUserDescriptionList.length; i++)
-			userList[i] = `${userList[i]}${postUserDescriptionList[i].substring(0, 80)}`;
-	if (userAvatars._apply)
-		userList = userList.map(name => name != '_apply' && userAvatars[name] !== undefined ? `${userAvatars[name]} ${name}` : `<:unknown:650033177460604938> ${name}`);
+	var userAndDescriptionList = userList.slice();
+	for (var i = 0; i < userAndDescriptionList.length; i++) {
+		if (userAndDescriptionList.length == preUserDescriptionList.length)
+			userAndDescriptionList[i] = `${preUserDescriptionList[i].substring(0, 80)}${userAndDescriptionList[i]}`;
+		if (userAndDescriptionList.length == postUserDescriptionList.length)
+			userAndDescriptionList[i] = `${userAndDescriptionList[i]}${postUserDescriptionList[i].substring(0, 80)}`;
+		if (userAvatars._apply)
+			userAndDescriptionList[i] = userList[i] != '_apply' && userAvatars[userList[i]] !== undefined ? `${userAvatars[userList[i]]} ${userAndDescriptionList[i]}` : `<:unknown:650033177460604938> ${userAndDescriptionList[i]}`);
+	}
 	var userListPages = [];
-	for (var i = 0; i < userList.length / usersPerPage; i++)
-		userListPages.push(userList.slice(i * usersPerPage, Math.min((i + 1) * usersPerPage, userList.length)).join('\n').trim().substring(0, 1900));
+	for (var i = 0; i < userAndDescriptionList.length / usersPerPage; i++)
+		userListPages.push(userAndDescriptionList.slice(i * usersPerPage, Math.min((i + 1) * usersPerPage, userAndDescriptionList.length)).join('\n').trim().substring(0, 1900));
 	if (userListPages.length === 0) userListPages = [''];
 	var contentList = [];
 	for (var i = 0; i < userListPages.length; i++)
@@ -415,7 +416,7 @@ function sendUserListByType(channel, messageType = 'online', userList = [], user
 				if (!onlineList.includes(userList[i]) && userInfo[userList[i]] !== undefined && userInfo[userList[i]].lastSeenAt !== undefined && userInfo[userList[i]].lastSeenAt/(1000*60*60*24) == Date.now()/(1000*60*60*24))
 					postStr = ` ▪ \`${getUserOfflineTime(userList[i])}\``;
 				if (willList[userList[i]] != '')
-					postStr += `\n▪ ▪ _${willList[userList[i]]}_`;
+					postStr += `\n▪ _${willList[userList[i]]}_`;
 				postUserDescriptionList.push(postStr);
 			}
 			sendUserList(channel, userList, title, additionalDescription, preUserDescriptionList, postUserDescriptionList, usersPerPage, color);
