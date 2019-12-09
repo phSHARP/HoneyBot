@@ -217,10 +217,10 @@ function getUserOfflineTime(username = '') {
 
 // Updates onlineList, lastSeenAt parameter of every user from userInfo and waitList
 function updateOnlineList(newList = []) {
-	onlineList = newList.slice();
 	// userInfo update
 	var whoHasGone = onlineList.filter(name => !newList.includes(name));
 	var whoHasCome = newList.filter(name => !onlineList.includes(name));
+	onlineList = newList.slice();
 	var updateStatusList = [...whoHasGone, ...whoHasCome];
 	for (var i = 0; i < updateStatusList.length; i++)
 		if (userInfo[updateStatusList[i]] === undefined)
