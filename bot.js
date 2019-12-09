@@ -199,7 +199,7 @@ function generatePing() {
 function getUserOfflineTime(username = '') {
 	if (userInfo[username] === undefined || userInfo[username].lastSeenAt === undefined)
 		return '';
-	var difference = new Date(Date.now() - userInfo[username].lastSeenAt));
+	var difference = new Date(Date.now() - userInfo[username].lastSeenAt);
 	var days = Math.floor(difference.getTime()/(1000*60*60*24));
 	if (days > 0)
 		return `заходил(а) ${days} ${russifyNumber(days, ['дней', 'день', 'дня'])} назад`;
