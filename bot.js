@@ -238,11 +238,12 @@ function updateOnlineList(newList = []) {
 	for (var i = 0; i < whoWaits.length; i++)
 		for (var j = 0; j < whoHasCome.length; j++)
 			if (waitList[whoWaits[i]] !== undefined && waitList[whoWaits[i]][whoHasCome[j]] !== undefined) {
-				delete waitList[whoWaits[i]][whoHasCome[j]];
+				var waited = whoHasCome[j];
+				delete waitList[whoWaits[i]][waited];
 				if (Object.keys(waitList[whoWaits[i]]).length === 0)
 					delete waitList[whoWaits[i]];
 				bot.fetchUser(whoWaits[i])
-					.then((user) => user.send(`Персонаж **${whoHasCome[j]}** только что зашел на сервер. <:OSsloth:338961408320339968>`).catch(() => {})).catch(() => {});
+					.then((user) => user.send(`Персонаж **${waited}** только что зашел на сервер. <:OSsloth:338961408320339968>`).catch(() => {})).catch(() => {});
 				isWaitListChanged = true;
 			}
 	if (isWaitListChanged)
