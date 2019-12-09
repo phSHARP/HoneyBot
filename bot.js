@@ -413,10 +413,10 @@ function sendUserListByType(channel, messageType = 'online', userList = [], user
 			for (var i = 0; i < userList.length; i++) {
 				preUserDescriptionList.push(onlineList.includes(userList[i]) ? '<:online:653584836237328384> ' : '<:offline:653584850783305739> ');
 				let postStr = '';
-				if (!onlineList.includes(userList[i]) && userInfo[userList[i]] !== undefined && userInfo[userList[i]].lastSeenAt !== undefined && userInfo[userList[i]].lastSeenAt/(1000*60*60*24) == Date.now()/(1000*60*60*24))
+				if (!onlineList.includes(userList[i]) && userInfo[userList[i]] !== undefined && userInfo[userList[i]].lastSeenAt !== undefined && Math.floor((Date.now() - userInfo[userList[i]].lastSeenAt)/(1000*60*60*24)) === 0)
 					postStr = ` ▪ \`${getUserOfflineTime(userList[i])}\``;
 				if (willList[userList[i]] != '')
-					postStr += `\n▪ _${willList[userList[i]]}_`;
+					postStr += `\n ℹ _${willList[userList[i]]}_`;
 				postUserDescriptionList.push(postStr);
 			}
 			sendUserList(channel, userList, title, additionalDescription, preUserDescriptionList, postUserDescriptionList, usersPerPage, color);
