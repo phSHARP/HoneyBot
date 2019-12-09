@@ -215,10 +215,13 @@ function getUserOfflineTime(username = '') {
 	return 'заходил(а) только что';
 }
 
-// Updates onlineList and lastSeenAt parameter of every user from userInfo
+// Updates onlineList, lastSeenAt parameter of every user from userInfo and waitList
 function updateOnlineList(newList = []) {
-	// [...who_has_gone[], ...who_has_come[]]
-	var updateStatusList = [...onlineList.filter(name => !newList.includes(name)), ...newList.filter(name => !onlineList.includes(name))];
+	onlineList = newList.slice();
+	// userInfo update
+	var whoHasGone = onlineList.filter(name => !newList.includes(name));
+	var whoHasCome = newList.filter(name => !onlineList.includes(name));
+	var updateStatusList = [...whoHasGone, ...whoHasCome];
 	for (var i = 0; i < updateStatusList.length; i++)
 		if (userInfo[updateStatusList[i]] === undefined)
 			userInfo[updateStatusList[i]] = {
@@ -227,9 +230,23 @@ function updateOnlineList(newList = []) {
 			};
 		else
 			userInfo[updateStatusList[i]].lastSeenAt = Date.now();
-	onlineList = newList.slice();
 	if (updateStatusList.length > 0)
 		saveUserInfo();
+	// waitList update
+	var whoWaits = Object.keys(waitList);
+	var isWaitListChanged = false;
+	for (var i = 0; i < whoWaits.length; i++)
+		for (var j = 0; j < whoHasCome.length; j++)
+			if (waitList[whoWaits[i]] !== undefined && waitList[whoWaits[i]][whoHasCome[j]] !== undefined) {
+				delete waitList[whoWaits[i]][whoHasCome[j]];
+				if (Object.keys(waitList[whoWaits[i]]).length === 0)
+					delete waitList[whoWaits[i]];
+				bot.fetchUser(whoWaits[i])
+					.then((user) => user.send(`Персонаж **${whoHasCome[j]}** только что зашел на сервер. <:OSsloth:338961408320339968>`).catch(() => {})).catch(() => {});
+				isWaitListChanged = true;
+			}
+	if (isWaitListChanged)
+		saveWaitList();
 }
 
 // Returns help message
@@ -363,7 +380,7 @@ function sendUserList(channel, userList = [], title = '', additionalDescription 
 
 // Sends user list of the Honeymoon server according to message (list) type
 // messageType in ['online', 'list']
-function sendUserListByType(channel, messageType = 'online', userList = [], usersPerPage = 15, color = 7265400) {
+function sendUserListByType(channel, messageType = 'online', userList = [], meta = '', usersPerPage = 15, color = 7265400) {
 	var title = ''; var additionalDescription = ''; var preUserDescriptionList = []; var postUserDescriptionList = [];
 	var userCount = userList.length;
 	switch (messageType) {
@@ -419,6 +436,13 @@ function sendUserListByType(channel, messageType = 'online', userList = [], user
 					postStr += `\n▪ 📎 _${willList[userList[i]]}_`;
 				postUserDescriptionList.push(postStr);
 			}
+			sendUserList(channel, userList, title, additionalDescription, preUserDescriptionList, postUserDescriptionList, usersPerPage, color);
+		break;
+		case 'wait':
+			let authorUsername = meta;
+			title = `Список ожидания ${authorUsername}:`;
+			if (userList.length === 0)
+				additionalDescription = '_\\*звук сверчков\\*_';
 			sendUserList(channel, userList, title, additionalDescription, preUserDescriptionList, postUserDescriptionList, usersPerPage, color);
 		break;
 	}
@@ -518,6 +542,7 @@ bot.on('message', (message) => {
 		case 'l':   cmd = 'list';           break;
 		case 'i':   cmd = 'info';           break;
 		case 'w':   cmd = 'will';           break;
+		case 'wa':  cmd = 'wait';           break;
 	}
 	switch (cmd) {
 		// ?re
@@ -684,30 +709,48 @@ bot.on('message', (message) => {
 				if (args.length > 1 && args[1] == 'remove') {
 					delete willList[args[0]];
 					saveWillList();
-					willNotification = `Персонаж успешно удален из списка \"**Сегодня будут**\".`;
+					willNotification = 'Персонаж успешно удален из списка \"**Сегодня будут**\".';
 				}
 				else {
-					let commentaryWill = content.replace(/^"[^"]*"|^[^ "]+/, '').trim().substring(0, 80);
-					willList[args[0].substring(0, 30)] = commentaryWill;
+					let willCommentary = content.replace(/^"[^"]*"|^[^ "]+/, '').trim().substring(0, 70);
+					willList[args[0].substring(0, 30)] = willCommentary;
 					saveWillList();
-					willNotification = `Персонаж успешно добавлен в список \"**Сегодня будут**\".`;
+					willNotification = 'Персонаж успешно добавлен в список \"**Сегодня будут**\".';
 				}
 				sendNotification(message.channel, `${willNotification} <:OSsloth:338961408320339968>`);
 			}
 		break;
 		// ?wait
-		/*case 'wait':
-			let expirationTime = -1;  // Never
-			let numberOfTimes = 1;
+		case 'wait':
+			/*let expirationTime = -1;  // Never*/
 			if (args.length === 0) {
-				
+				let authorWaitList = waitList[message.author.id] !== undefined ? Object.keys(waitList[message.author.id]) : [];
+				sendUserListByType(message.channel, 'wait', authorWaitList, message.author.username);
 			}
 			else {
 				let waitNotification = '';
-				
+				if (args.length > 1 && args[1] == 'remove') {
+					if (waitList[message.author.id] !== undefined)
+						delete waitList[message.author.id][args[0]];
+					if (Object.keys(waitList[message.author.id]).length === 0)
+						delete waitList[message.author.id];
+					saveWaitList();
+					waitNotification = 'Персонаж успешно удален из вашего списка ожидания.';
+				}
+				else {
+					if (waitList[message.author.id] === undefined)
+						waitList[message.author.id] = {};
+					if (Object.keys(waitList[message.author.id]) < maxUsersToWait) {
+						waitList[message.author.id][args[0].substring(0, 30)] = {};
+						saveWaitList();
+						waitNotification = 'Персонаж успешно добавлен в ваш список ожидания.';
+					}
+					else
+						waitNotification = 'Превышен лимит количества персонажей для ожидания.';
+				}
 				sendNotification(message.channel, `${waitNotification} <:OSsloth:338961408320339968>`);
 			}
-		break;*/
+		break;
 	}
 });
 
