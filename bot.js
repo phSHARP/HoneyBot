@@ -242,6 +242,7 @@ function updateOnlineList(newList = []) {
 				delete waitList[whoWaits[i]][waited];
 				if (Object.keys(waitList[whoWaits[i]]).length === 0)
 					delete waitList[whoWaits[i]];
+				waited = waited != '_apply' && userAvatars[waited] !== undefined ? `${userAvatars[waited]} ${waited}` : `<:unknown:650033177460604938> ${waited}`;
 				bot.fetchUser(whoWaits[i])
 					.then((user) => user.send(`Персонаж **${waited}** только что зашел на сервер. <:OSsloth:338961408320339968>`).catch(() => {})).catch(() => {});
 				isWaitListChanged = true;
