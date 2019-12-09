@@ -335,7 +335,7 @@ function sendUserList(channel, userList = [], title = '', additionalDescription 
 		if (userAndDescriptionList.length == postUserDescriptionList.length)
 			userAndDescriptionList[i] = `${userAndDescriptionList[i]}${postUserDescriptionList[i].substring(0, 80)}`;
 		if (userAvatars._apply)
-			userAndDescriptionList[i] = userList[i] != '_apply' && userAvatars[userList[i]] !== undefined ? `${userAvatars[userList[i]]} ${userAndDescriptionList[i]}` : `<:unknown:650033177460604938> ${userAndDescriptionList[i]}`);
+			userAndDescriptionList[i] = userList[i] != '_apply' && userAvatars[userList[i]] !== undefined ? `${userAvatars[userList[i]]} ${userAndDescriptionList[i]}` : `<:unknown:650033177460604938> ${userAndDescriptionList[i]}`;
 	}
 	var userListPages = [];
 	for (var i = 0; i < userAndDescriptionList.length / usersPerPage; i++)
