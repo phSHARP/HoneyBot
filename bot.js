@@ -422,6 +422,7 @@ function sendUserListByType(channel, messageType = 'online', userList = [], meta
 					additionalDescription += `\n\`Погода: ${content.hasStorm ? 'Осадки' : 'Ясно'}${content.isThundering ? ' с грозой' : ''}\``;
 					if (userCount === 0)
 						additionalDescription += '\n\n_\\*звук сверчков\\*_';
+					preUserDescriptionList = (new Array(userCount)).fill('<:online:653584836237328384> ');
 					sendUserList(channel, userList, title, additionalDescription, preUserDescriptionList, postUserDescriptionList, usersPerPage, color);
 				} catch (e) {
 					logger.info(`Can't work with ${options.url} due to this error:`);
@@ -441,10 +442,13 @@ function sendUserListByType(channel, messageType = 'online', userList = [], meta
 			for (var i = 0; i < userList.length; i++) {
 				preUserDescriptionList.push(onlineList.includes(userList[i]) ? '<:online:653584836237328384> ' : '<:offline:653584850783305739> ');
 				let postStr = '';
-				if (!onlineList.includes(userList[i]) && userInfo[userList[i]] !== undefined && userInfo[userList[i]].lastSeenAt !== undefined && Math.floor((Date.now() - userInfo[userList[i]].lastSeenAt)/(1000*60*60*24)) === 0)
-					postStr = ` ▪ \`${getUserOfflineTime(userList[i])}\``;
-				if (willList[userList[i]] != '')
-					postStr += `\n▪ 📎 _${willList[userList[i]]}_`;
+				if (!onlineList.includes(userList[i]) && userInfo[userList[i]] !== undefined && userInfo[userList[i]].lastSeenAt !== undefined) {
+					let onlineDiffHours = Math.floor((userInfo[userList[i]].lastSeenAt - Math.floor(Date.now()/(1000*60*60*24)) * (1000*60*60*24)) / (1000*60*60));
+					if (0 <= onlineDiffHours && onlineDiffHours < 24)
+						postStr = ` ▪ \`${getUserOfflineTime(userList[i])}\``;
+				}
+				if (willList[userList[i]] !== undefined && willList[userList[i]] != '')
+					postStr += `\n<:space:655013932754403329> 📎 _${willList[userList[i]]}_`;
 				postUserDescriptionList.push(postStr);
 			}
 			sendUserList(channel, userList, title, additionalDescription, preUserDescriptionList, postUserDescriptionList, usersPerPage, color);
@@ -736,7 +740,8 @@ bot.on('message', (message) => {
 			/*let expirationTime = -1;  // Never*/
 			if (args.length === 0) {
 				let authorWaitList = waitList[message.author.id] !== undefined ? Object.keys(waitList[message.author.id]) : [];
-				sendUserListByType(message.channel, 'wait', authorWaitList, message.author.username);
+				let authorName = message.channel.type == 'text' && message.member.nickname ? message.member.nickname : message.author.username;
+				sendUserListByType(message.channel, 'wait', authorWaitList, authorName);
 			}
 			else {
 				let waitNotification = '';
