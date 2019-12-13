@@ -469,7 +469,7 @@ function sendUserListByType(channel, messageType = 'online', userList = [], meta
 					title = `Онлайн [${userCount}/${userCountMax}]`;
 					additionalDescription = `🏆 \`Рекорд:\` ${onlineRecord}`;
 					additionalDescription += `\n🌍 \`Погода:\` ${content.hasStorm ? 'Осадки' : 'Ясно ☀'}`;
-					additionalDescription += content.isThundering ? ' с грозой ⛈' : ' 🌧';
+					additionalDescription += content.hasStorm ? content.isThundering ? ' с грозой ⛈' : ' 🌧' : '';
 					if (userCount === 0)
 						additionalDescription += '\n\n_\\*звук сверчков\\*_';
 					preUserDescriptionList = new Array(userCount);
