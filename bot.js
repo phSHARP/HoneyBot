@@ -11,9 +11,15 @@ const prefix = cfg.prefix;
 const notificationMessageLifetime = cfg.notificationMessageLifetime;
 const urlSite = cfg.urlSite;
 const urlDynMapRequest = cfg.urlDynMapRequest;
+const urlAvatarUnknown = cfg.urlAvatarUnknown;
 const urlStatusOnline = cfg.urlStatusOnline;
 const urlStatusAFK = cfg.urlStatusAFK;
 const urlStatusOffline = cfg.urlStatusOffline;
+const emojiStatusOnline = cfg.emojiStatusOnline;
+const emojiStatusAFK = cfg.emojiStatusAFK;
+const emojiStatusOffline = cfg.emojiStatusOffline;
+const emojiSpace = cfg.emojiSpace;
+const emojiUnknown = cfg.emojiUnknown;
 const useTimestamp = cfg.useTimestamp;
 const maxOnline = cfg.maxOnline;
 const timeUntilAFK = cfg.timeUntilAFK;
@@ -121,7 +127,7 @@ function russifyNumber(number, variants = ['', '', '']) {
 				: number%10 > 1 && number%10 < 5
 					? variants[2]
 				: variants[0]
-			: variants[0]
+			: variants[0];
 }
 
 // Returns request url to DynMap
@@ -219,9 +225,9 @@ function getUserOfflineTime(username = '') {
 function getUserOnlineEmoji(username = '') {
 	return playersStatus[username] !== undefined
 				? playersStatus[username].afk
-					? '<:afk:655050452391559170>'
-					: '<:online:653584836237328384>'
-				: '<:offline:653584850783305739>'
+					? emojiStatusAFK
+					: emojiStatusOnline
+				: emojiStatusOffline;
 }
 
 // Updates onlineList, onlineRecord, playersStatus, lastSeenAt parameter of every user from userInfo and waitList
@@ -382,11 +388,11 @@ function getUserInfo(username, color = 7265400) {
 				'icon_url': 'https://cdn.discordapp.com/icons/375333729897414656/a024824d98cbeaff25b66eba15b7b6ad.png'
 			},
 			'title': `📝 Информация: ${username}`,
-			'url': `https://my.honeymoon.rip/skins/${username}.png`,
+			'url': `https://my.honeymoon.rip/skins/${encodeURIComponent(username)}.png`,
 			'thumbnail': {
 				'url': userAvatars[username] !== undefined
 					? `https://cdn.discordapp.com/emojis/${userAvatars[username].match(/<a?:[^ ]*:(\d*)>/)[1]}.${userAvatars[username].startsWith('<a') ? 'gif' : 'png'}`
-					: `https://i.imgur.com/YEB3QPU.png` //`https://cdn.discordapp.com/embed/avatars/${randomInt(0, 5)}.png`
+					: urlAvatarUnknown //`https://cdn.discordapp.com/embed/avatars/${randomInt(0, 5)}.png`
 			},
 			'description': `${userInfo[username] !== undefined && userInfo[username].description !== undefined ? userInfo[username].description : userInfo._default}`,
 			'image': {
@@ -500,7 +506,7 @@ function sendUserListByType(channel, messageType = 'online', userList = [], meta
 						postStr = ` ▪ \`${getUserOfflineTime(userList[i])}\``;
 				}
 				if (willList[userList[i]] !== undefined && willList[userList[i]] != '')
-					postStr += `\n<:space:655013932754403329> 📎 _${willList[userList[i]]}_`;
+					postStr += `\n${emojiSpace} 📎 _${willList[userList[i]]}_`;
 				postUserDescriptionList.push(postStr);
 			}
 			sendUserList(channel, userList, title, additionalDescription, preUserDescriptionList, postUserDescriptionList, usersPerPage, color);
