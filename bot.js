@@ -12,9 +12,11 @@ const notificationMessageLifetime = cfg.notificationMessageLifetime;
 const urlSite = cfg.urlSite;
 const urlDynMapRequest = cfg.urlDynMapRequest;
 const urlStatusOnline = cfg.urlStatusOnline;
+const urlStatusAFK = cfg.urlStatusAFK;
 const urlStatusOffline = cfg.urlStatusOffline;
 const useTimestamp = cfg.useTimestamp;
 const maxOnline = cfg.maxOnline;
+const timeUntilAFK = cfg.timeUntilAFK;
 const maxUsersToWait = cfg.maxUsersToWait;
 const onlineRecordFullName = cfg.onlineRecordFName;
 const userAvatarsFullName = cfg.userAvatarsPath + cfg.userAvatarsFName;
@@ -26,6 +28,7 @@ var botLoaded = false;
 var botMaintenance = false;
 var onlineRecord = 0;
 var onlineList = [];
+var playersStatus = {};
 var userAvatars = { _apply: false };
 var userInfo = { _global_lock: false, _default: 'загрузка...' };
 var willList = {};
@@ -86,22 +89,19 @@ setInterval(() => {
 	}
 	request(options, (error, response, body) => {
 		if (error) {
-			updateOnlineList();
+			updateOnline();
 			bot.user.setActivity(errorMessage, { type: 'WATCHING' }).catch((e) => {});
 			return;
 		}
 		try {
 			var content = JSON.parse(body);
-			var newOnlineList = content.players.map(player => player.name.replace(/([\*\|_~`])/g, '\\$1'));
-			updateOnlineList(newOnlineList);
-			var onlineCount = newOnlineList.length;
-			if (onlineCount > onlineRecord) {
-				onlineRecord = onlineCount;
-				saveOnlineRecord();
-			}
-			bot.user.setActivity(`онлайн [${onlineCount}/${maxOnline}]`, { type: 'WATCHING' }).catch((e) => {});
+			for (var i = 0; i < content.players.length; i++)
+				content.players[i].name = content.players[i].name.replace(/([\*\|_~`])/g, '\\$1');
+			var newOnlineList = content.players.map(player => player.name);
+			updateOnline(newOnlineList, content.players);
+			bot.user.setActivity(`онлайн [${newOnlineList.length}/${maxOnline}]`, { type: 'WATCHING' }).catch((e) => {});
 		} catch (e) {
-			updateOnlineList();
+			updateOnline();
 			bot.user.setActivity(errorMessage, { type: 'WATCHING' }).catch((e) => {});
 		}
 	});
@@ -116,12 +116,12 @@ function russifyNumber(number, variants = ['', '', '']) {
 	// If variants are:          ['дней', 'день', 'дня']
 	// the result will be then:  0 дней, 1 день, 2 дня...
 	return number < 10 || number > 20
-					? number%10 == 1
-						? variants[1]
-					: number%10 > 1 && number%10 < 5
-						? variants[2]
-					: variants[0]
+				? number%10 == 1
+					? variants[1]
+				: number%10 > 1 && number%10 < 5
+					? variants[2]
 				: variants[0]
+			: variants[0]
 }
 
 // Returns request url to DynMap
@@ -198,7 +198,7 @@ function generatePing() {
 // Gets localized user offline time or empty string if it doesn't exist
 function getUserOfflineTime(username = '') {
 	if (userInfo[username] === undefined || userInfo[username].lastSeenAt === undefined)
-		return '';
+		return 'не в сети';
 	var difference = new Date(Date.now() - userInfo[username].lastSeenAt);
 	var days = Math.floor(difference.getTime()/(1000*60*60*24));
 	if (days > 0)
@@ -215,22 +215,63 @@ function getUserOfflineTime(username = '') {
 	return 'заходил(а) только что';
 }
 
-// Updates onlineList, lastSeenAt parameter of every user from userInfo and waitList
-function updateOnlineList(newList = []) {
-	// userInfo update
-	var whoHasGone = onlineList.filter(name => !newList.includes(name));
-	var whoHasCome = newList.filter(name => !onlineList.includes(name));
-	onlineList = newList.slice();
-	var updateStatusList = [...whoHasGone, ...whoHasCome];
-	for (var i = 0; i < updateStatusList.length; i++)
-		if (userInfo[updateStatusList[i]] === undefined)
-			userInfo[updateStatusList[i]] = {
+// Returns Discord emoji (text version of it) according to user online status
+function getUserOnlineEmoji(username = '') {
+	return playersStatus[username] !== undefined
+				? playersStatus[username].afk
+					? '<:afk:655050452391559170>'
+					: '<:online:653584836237328384>'
+				: '<:offline:653584850783305739>'
+}
+
+// Updates onlineList, onlineRecord, playersStatus, lastSeenAt parameter of every user from userInfo and waitList
+function updateOnline(newOnlineList = [], players = []) {
+	var whoHasGone = onlineList.filter(name => !newOnlineList.includes(name));
+	var whoHasCome = newOnlineList.filter(name => playersStatus[name] === undefined);
+	// onlineList update
+	onlineList = newOnlineList.slice();
+	// onlineRecord update
+	var onlineCount = onlineList.length;
+	if (onlineCount > onlineRecord) {
+		onlineRecord = onlineCount;
+		saveOnlineRecord();
+	}
+	// playersStatus update
+	for (var i = 0; i < whoHasGone.length; i++)
+		delete playersStatus[whoHasGone[i]];
+	var eps = 0.0000000001;
+	for (var i = 0; i < players.length; i++)
+		if (playersStatus[players[i].name] === undefined)
+			playersStatus[players[i].name] = {
+				x: players[i].x,
+				y: players[i].y,
+				z: players[i].z,
+				lastMovedAt: Date.now(),
+				afk: false
+			};
+		else {
+			if (Math.abs(playersStatus[players[i].name].x - players[i].x) > eps || Math.abs(playersStatus[players[i].name].y - players[i].y) > eps || Math.abs(playersStatus[players[i].name].z - players[i].z) > eps) {
+				playersStatus[players[i].name].lastMovedAt = Date.now();
+				playersStatus[players[i].name].afk = false;
+			}
+			else if (Date.now() - playersStatus[players[i].name].lastMovedAt > timeUntilAFK)
+				playersStatus[players[i].name].afk = true;
+			playersStatus[players[i].name].x = players[i].x;
+			playersStatus[players[i].name].y = players[i].y;
+			playersStatus[players[i].name].z = players[i].z;
+		}
+			
+	// userInfo[name].lastSeenAt update
+	var updateOnlineStatusList = [...whoHasGone, ...whoHasCome];
+	for (var i = 0; i < updateOnlineStatusList.length; i++)
+		if (userInfo[updateOnlineStatusList[i]] === undefined)
+			userInfo[updateOnlineStatusList[i]] = {
 				lastSeenAt: Date.now(),
 				locked: false
 			};
 		else
-			userInfo[updateStatusList[i]].lastSeenAt = Date.now();
-	if (updateStatusList.length > 0)
+			userInfo[updateOnlineStatusList[i]].lastSeenAt = Date.now();
+	if (updateOnlineStatusList.length > 0)
 		saveUserInfo();
 	// waitList update
 	var whoWaits = Object.keys(waitList);
@@ -317,12 +358,20 @@ ${prefix}wait <name> _remove_ \`->\` удалить персонажа из сп
 
 // Returns info about user
 function getUserInfo(username, color = 7265400) {
-	var footerText = '';
-	if (onlineList.includes(username))
-		footerText = 'в сети';
+	var userOnlineIcon = ''; var userOnlineStatus = '';
+	if (playersStatus[username] !== undefined) {
+		if (playersStatus[username].afk) {
+			userOnlineIcon = urlStatusAFK;
+			userOnlineStatus = 'отошел';
+		}
+		else {
+			userOnlineIcon = urlStatusOnline;
+			userOnlineStatus = 'в сети';
+		}
+	}
 	else {
-		var userOfflineTime = getUserOfflineTime(username);
-		footerText = userOfflineTime == '' ? 'не в сети' : userOfflineTime;
+		userOnlineIcon = urlStatusOffline;
+		userOnlineStatus = getUserOfflineTime(username);
 	}
 	return {
 		'embed': {
@@ -344,8 +393,8 @@ function getUserInfo(username, color = 7265400) {
 				'url': `${userInfo[username] !== undefined && userInfo[username].art !== undefined ? userInfo[username].art : ''}`
 			},
 			'footer': {
-				'icon_url': onlineList.includes(username) ? urlStatusOnline : urlStatusOffline,
-				'text': footerText
+				'icon_url': userOnlineIcon,
+				'text': userOnlineStatus
 			}
 		}
 	};
@@ -418,11 +467,14 @@ function sendUserListByType(channel, messageType = 'online', userList = [], meta
 					}
 					var userCountMax = Math.max(userCount, maxOnline);
 					title = `Онлайн [${userCount}/${userCountMax}]`;
-					additionalDescription = `\`Рекорд: ${onlineRecord}\``;
-					additionalDescription += `\n\`Погода: ${content.hasStorm ? 'Осадки' : 'Ясно'}${content.isThundering ? ' с грозой' : ''}\``;
+					additionalDescription = `🏆 \`Рекорд:\` ${onlineRecord}`;
+					additionalDescription += `\n🌍 \`Погода:\` ${content.hasStorm ? 'Осадки' : 'Ясно ☀'}`;
+					additionalDescription += content.isThundering ? ' с грозой ⛈' : ' 🌧';
 					if (userCount === 0)
 						additionalDescription += '\n\n_\\*звук сверчков\\*_';
-					preUserDescriptionList = (new Array(userCount)).fill('<:online:653584836237328384> ');
+					preUserDescriptionList = new Array(userCount);
+					for (var i = 0; i < userList.length; i++)
+						preUserDescriptionList[i] = getUserOnlineEmoji(userList[i]) + ' ';
 					sendUserList(channel, userList, title, additionalDescription, preUserDescriptionList, postUserDescriptionList, usersPerPage, color);
 				} catch (e) {
 					logger.info(`Can't work with ${options.url} due to this error:`);
@@ -440,9 +492,9 @@ function sendUserListByType(channel, messageType = 'online', userList = [], meta
 			if (userList.length === 0)
 				additionalDescription = '_\\*звук сверчков\\*_';
 			for (var i = 0; i < userList.length; i++) {
-				preUserDescriptionList.push(onlineList.includes(userList[i]) ? '<:online:653584836237328384> ' : '<:offline:653584850783305739> ');
+				preUserDescriptionList.push(getUserOnlineEmoji(userList[i]) + ' ');
 				let postStr = '';
-				if (!onlineList.includes(userList[i]) && userInfo[userList[i]] !== undefined && userInfo[userList[i]].lastSeenAt !== undefined) {
+				if (playersStatus[userList[i]] === undefined && userInfo[userList[i]] !== undefined && userInfo[userList[i]].lastSeenAt !== undefined) {
 					let onlineDiffHours = Math.floor((userInfo[userList[i]].lastSeenAt - Math.floor(Date.now()/(1000*60*60*24)) * (1000*60*60*24)) / (1000*60*60));
 					if (0 <= onlineDiffHours && onlineDiffHours < 24)
 						postStr = ` ▪ \`${getUserOfflineTime(userList[i])}\``;
