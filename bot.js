@@ -362,7 +362,7 @@ function getUserInfo(username, color = 7265400) {
 	if (playersStatus[username] !== undefined) {
 		if (playersStatus[username].afk) {
 			userOnlineIcon = urlStatusAFK;
-			userOnlineStatus = 'отошел';
+			userOnlineStatus = 'AFK';
 		}
 		else {
 			userOnlineIcon = urlStatusOnline;
