@@ -413,15 +413,15 @@ function sendUserList(channel, userList = [], title = '', additionalDescription 
 	var userAndDescriptionList = userList.slice();
 	for (var i = 0; i < userAndDescriptionList.length; i++) {
 		if (userAndDescriptionList.length == postUserDescriptionList.length)
-			userAndDescriptionList[i] = `${userAndDescriptionList[i]}${postUserDescriptionList[i].substring(0, 80)}`;
+			userAndDescriptionList[i] = `${userAndDescriptionList[i]}${postUserDescriptionList[i]}`;
 		if (userAvatars._apply)
 			userAndDescriptionList[i] = userList[i] != '_apply' && userAvatars[userList[i]] !== undefined ? `${userAvatars[userList[i]]} ${userAndDescriptionList[i]}` : `<:unknown:650033177460604938> ${userAndDescriptionList[i]}`;
 		if (userAndDescriptionList.length == preUserDescriptionList.length)
-			userAndDescriptionList[i] = `${preUserDescriptionList[i].substring(0, 80)}${userAndDescriptionList[i]}`;
+			userAndDescriptionList[i] = `${preUserDescriptionList[i]}${userAndDescriptionList[i]}`;
 	}
 	var userListPages = [];
 	for (var i = 0; i < userAndDescriptionList.length / usersPerPage; i++)
-		userListPages.push(userAndDescriptionList.slice(i * usersPerPage, Math.min((i + 1) * usersPerPage, userAndDescriptionList.length)).join('\n').trim().substring(0, 1900));
+		userListPages.push(userAndDescriptionList.slice(i * usersPerPage, Math.min((i + 1) * usersPerPage, userAndDescriptionList.length)).join('\n').trim());
 	if (userListPages.length === 0) userListPages = [''];
 	var contentList = [];
 	for (var i = 0; i < userListPages.length; i++)
@@ -774,7 +774,7 @@ bot.on('message', (message) => {
 						willList = {};
 						saveWillList();
 					}
-					sendUserListByType(message.channel, 'will', Object.keys(willList));
+					sendUserListByType(message.channel, 'will', Object.keys(willList), '', 10);
 				});
 			}
 			else {
@@ -785,7 +785,7 @@ bot.on('message', (message) => {
 					willNotification = 'Персонаж успешно удален из списка \"**Сегодня будут**\".';
 				}
 				else {
-					let willCommentary = content.replace(/^"[^"]*"|^[^ "]+/, '').trim().substring(0, 70);
+					let willCommentary = content.replace(/^"[^"]*"|^[^ "]+/, '').trim().substring(0, 100);
 					willList[args[0].substring(0, 30)] = willCommentary;
 					saveWillList();
 					willNotification = 'Персонаж успешно добавлен в список \"**Сегодня будут**\".';
@@ -795,7 +795,6 @@ bot.on('message', (message) => {
 		break;
 		// ?wait
 		case 'wait':
-			/*let expirationTime = -1;  // Never*/
 			if (args.length === 0) {
 				let authorWaitList = waitList[message.author.id] !== undefined ? Object.keys(waitList[message.author.id]) : [];
 				let authorName = message.channel.type == 'text' && message.member.nickname ? message.member.nickname : message.author.username;
