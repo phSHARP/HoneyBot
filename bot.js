@@ -1050,8 +1050,8 @@ client.on('interactionCreate', async interaction => {
 	// ================================================ EXECUTION ================================================
 	switch (commandName) {
 		case 'help':   commands['help']  .execute(reply, { wrap: wrapFetchReply, useExternalEmojis: permissions.has(['USE_EXTERNAL_EMOJIS']) }); break;
-		case 'online': commands['online'].execute(reply); break;
-		case 'list':   commands['list']  .execute(reply); break;
+		case 'online': commands['online'].execute(reply, { wrap: wrapFetchReply }); break;
+		case 'list':   commands['list']  .execute(reply, { wrap: wrapFetchReply }); break;
 		case 'ping':   commands['ping']  .execute(reply, { wrap: wrapEphemeral, edit: editReply }); break;
 	}
 });
