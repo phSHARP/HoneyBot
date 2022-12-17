@@ -1,0 +1,107 @@
+{
+	"creatorID": "193036945713135616",
+	"prefix": "?",
+	"client": {
+		"id": "596283705224462337",
+		"testId": "575228962582691840",
+		"displayName": "HoneyBot",
+		"MessageManager": {
+			"maxSize": 200,
+			"sweepInterval": 300,
+			"sweepFilter": { "lifetime": 28800 }
+		},
+		"intents": ["GUILDS", "GUILD_MESSAGES", "GUILD_MESSAGE_REACTIONS", "DIRECT_MESSAGES", "DIRECT_MESSAGE_REACTIONS"],
+		"partials": ["CHANNEL"]
+	},
+	"guildTestId": "193037662700044289",
+	"manager": {
+		"aliases": {
+			"h": "help",
+			"reu": "reusers",
+			"as": "avatarswitch",
+			"ils": "infolockswitch",
+			"di": "deleteinfo",
+			"a": "avatar",
+			"o": "online",
+			"l": "list",
+			"i": "info",
+			"w": "will",
+			"wa": "wait"
+		},
+		"commands": {
+			"help": {
+				"applicationCommands": [
+					{
+						"type": "CHAT_INPUT",
+						"name": "help",
+						"description": "Нужна помощь? 🙃",
+						"options": []
+					}
+				],
+				"permissions": []
+			},
+			"online": {
+				"applicationCommands": [
+					{
+						"type": "CHAT_INPUT",
+						"name": "online",
+						"description": "Подсмотреть онлайн на сервере 👀",
+						"options": []
+					}
+				],
+				"permissions": []
+			},
+			"list": {
+				"applicationCommands": [
+					{
+						"type": "CHAT_INPUT",
+						"name": "list",
+						"description": "Перечислить список аватаров 🦄",
+						"options": []
+					}
+				],
+				"permissions": []
+			},
+			"ping": {
+				"applicationCommands": [
+					{
+						"type": "CHAT_INPUT",
+						"name": "ping",
+						"description": "Понг!",
+						"options": []
+					}
+				],
+				"permissions": []
+			},
+			"reset": {
+				"permissions": []
+			}
+		}
+	},
+	"defaultNotificationLifetime": 5000,
+	"urlSite": "https://dreamwalker.su/",
+	"urlDynMapRequest": "https://maphnm.dreamwalker.su/up/world/equestria/",
+	"urlAvatarUnknown": "https://i.imgur.com/YEB3QPU.png",
+	"urlStatusOnline": "https://i.imgur.com/Oavsk19.png",
+	"urlStatusAFK": "https://i.imgur.com/1CZesiH.png",
+	"urlStatusOffline": "https://i.imgur.com/8a4bV2h.png",
+	"emojiStatusOnline": "<:online:655127019889229848>",
+	"emojiStatusAFK": "<:afk:655127033667387432>",
+	"emojiStatusOffline": "<:offline:653584850783305739>",
+	"emojiSpace": "<:space:655013932754403329>",
+	"emojiUnknown": "<:unknown:650033177460604938>",
+	"useTimestamp": true,
+	"maxOnline": 20,
+	"timeUntilAFK": 900000,
+	"maxUsersToWait": 30,
+	"onlineRecordFName": "./online_record.txt",
+	"userAvatarsPath": "./user_avatars/",
+	"userAvatarsFName": "user_avatars.txt",
+	"userInfoPath": "./user_info/",
+	"userInfoFName": "user_info.txt",
+	"willListPath": "./will_list/",
+	"willListFName": "will_list.txt",
+	"waitListPath": "./wait_list/",
+	"waitListFName": "wait_list.txt",
+	"inviteLink": "https://discord.com/oauth2/authorize?client_id=596283705224462337&scope=bot%20applications.commands&permissions=274878221376"
+}
