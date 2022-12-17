@@ -413,8 +413,8 @@ async function getHelp(color = randomColor(), useExternalEmojis = false) {
 				//	${prefix}wait <name> _remove_ \`->\` удалить персонажа из списка.`,
 				`📢 ${commandMentions.get('ping')} — узнать задержку Discord API.\n` +
 				`❔ ${commandMentions.get('help')} — показать данное сообщение.\n` +
-				`${useExternalEmojis ? '<:space:835529413029265458>' : ''}`,
-				//legend + `\n${useExternalEmojis ? '<:space:835529413029265458>' : ''}`,
+				`${useExternalEmojis ? '<:space:655013932754403329>' : ''}`,
+				//legend + `\n${useExternalEmojis ? '<:space:655013932754403329>' : ''}`,
 				'fields': invites
 		}]
 	};
